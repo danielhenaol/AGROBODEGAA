@@ -1,0 +1,37 @@
+{
+  "kind": "collectionType",
+  "collectionName": "notification_catalogs",
+  "info": {
+    "singularName": "notification-catalog",
+    "pluralName": "notification-catalogs",
+    "displayName": "Notification Catalog",
+    "description": "Catálogo de plantillas de notificaciones"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "eventCode": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "subject": {
+      "type": "string",
+      "required": true
+    },
+    "bodyTemplate": {
+      "type": "text",
+      "required": true
+    },
+    "channel": {
+      "type": "enumeration",
+      "enum": ["EMAIL", "SMS", "PUSH"],
+      "required": true
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

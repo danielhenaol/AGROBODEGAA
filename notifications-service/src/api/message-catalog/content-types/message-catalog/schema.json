@@ -1,0 +1,40 @@
+{
+  "kind": "collectionType",
+  "collectionName": "message_catalogs",
+  "info": {
+    "singularName": "message-catalog",
+    "pluralName": "message-catalogs",
+    "displayName": "Message Catalog",
+    "description": "Catálogo de mensajes del sistema"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "code": {
+      "type": "string",
+      "required": true,
+      "unique": true
+    },
+    "title": {
+      "type": "string"
+    },
+    "message": {
+      "type": "text",
+      "required": true
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": ["SUCCESS", "ERROR", "WARNING", "INFO"],
+      "required": true
+    },
+    "locale": {
+      "type": "string",
+      "default": "es-CO"
+    },
+    "active": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}
