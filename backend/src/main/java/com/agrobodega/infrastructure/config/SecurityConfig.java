@@ -43,7 +43,8 @@ public class SecurityConfig {
                                 "/api-docs/**",
                                 "/actuator/**",
                                 "/api/v1/inventory/stream",
-                                "/api/v1/catalogos/**"
+                                "/api/v1/catalogos/**",
+                                "/api/v1/strapi/catalogs/**"
                         ).permitAll()
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 ->
