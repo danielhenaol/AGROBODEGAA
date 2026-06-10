@@ -42,6 +42,7 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/api-docs/**",
                                 "/actuator/**",
+                                "/api/v1/**",
                                 "/api/v1/inventory/stream",
                                 "/api/v1/catalogos/**",
                                 "/api/v1/strapi/catalogs/**"
