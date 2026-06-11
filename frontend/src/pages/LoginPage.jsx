@@ -4,14 +4,27 @@ import { Navigate } from 'react-router-dom'
 export default function LoginPage() {
   const { loginWithRedirect, isAuthenticated, isLoading } = useAuth0()
 
-  const handleLogin = () => {
-    loginWithRedirect({
-      authorizationParams: {
-        redirect_uri: window.location.origin,
-        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        scope: 'openid profile email',
-      },
-    })
+  const handleLogin = async () => {
+    try {
+      console.log('Intentando iniciar sesión con Auth0...')
+      console.log('DOMAIN:', import.meta.env.VITE_AUTH0_DOMAIN)
+      console.log('CLIENT ID:', import.meta.env.VITE_AUTH0_CLIENT_ID)
+      console.log('AUDIENCE:', import.meta.env.VITE_AUTH0_AUDIENCE)
+
+      await loginWithRedirect({
+        authorizationParams: {
+          redirect_uri: window.location.origin,
+          audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+          scope: 'openid profile email',
+        },
+        appState: {
+          returnTo: '/',
+        },
+      })
+    } catch (error) {
+      console.error('Error iniciando sesión con Auth0:', error)
+      alert('Error iniciando sesión con Auth0. Revisa la consola.')
+    }
   }
 
   if (isLoading) {
