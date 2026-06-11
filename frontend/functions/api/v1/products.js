@@ -1,5 +1,4 @@
 const PRODUCTS_URL = '/api/v1/products'
-
 export async function onRequestGet() {
   try {
     const response = await fetch(KONG_PRODUCTS_URL, {
