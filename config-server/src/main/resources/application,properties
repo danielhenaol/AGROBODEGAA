@@ -1,0 +1,11 @@
+spring.application.name=agrobodega-config-server
+
+server.port=${SERVER_PORT:8888}
+
+# Repositorio nativo para demo
+spring.profiles.active=native
+spring.cloud.config.server.native.search-locations=classpath:/config-repo
+
+# Actuator
+management.endpoints.web.exposure.include=health,info
+management.endpoint.health.show-details=always
