@@ -12,13 +12,18 @@ import LoginPage from './pages/LoginPage'
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuth0()
-  if (isLoading) return (
-    <div className="loading-screen">
-      <div className="loading-spinner" />
-      <span>Cargando...</span>
-    </div>
-  )
-  return isAuthenticated ? children : <Navigate to="/login" />
+  const isDemo = localStorage.getItem('agrobodega_demo') === 'true'
+
+  if (isLoading) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner" />
+        <span>Cargando...</span>
+      </div>
+    )
+  }
+
+  return isAuthenticated || isDemo ? children : <Navigate to="/login" replace />
 }
 
 export default function App() {
@@ -26,11 +31,14 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }>
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
           <Route index element={<Dashboard />} />
           <Route path="entradas" element={<Entries />} />
           <Route path="salidas" element={<Exits />} />

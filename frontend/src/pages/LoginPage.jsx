@@ -2,33 +2,24 @@ import { useAuth0 } from '@auth0/auth0-react'
 import { Navigate, useNavigate } from 'react-router-dom'
 
 export default function LoginPage() {
-  const { loginWithRedirect, isAuthenticated, isLoading } = useAuth0()
+  const { isAuthenticated, isLoading } = useAuth0()
   const navigate = useNavigate()
 
-  const handleLogin = async () => {
-    try {
-      console.log('Intentando iniciar sesión con Auth0')
-      console.log('DOMAIN:', import.meta.env.VITE_AUTH0_DOMAIN)
-      console.log('CLIENT ID:', import.meta.env.VITE_AUTH0_CLIENT_ID)
-      console.log('AUDIENCE:', import.meta.env.VITE_AUTH0_AUDIENCE)
+  const domain = import.meta.env.VITE_AUTH0_DOMAIN
+  const clientId = import.meta.env.VITE_AUTH0_CLIENT_ID
+  const audience = import.meta.env.VITE_AUTH0_AUDIENCE
+  const redirectUri = window.location.origin
 
-      await loginWithRedirect({
-        authorizationParams: {
-          redirect_uri: window.location.origin,
-          audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-          scope: 'openid profile email',
-        },
-        appState: {
-          returnTo: '/',
-        },
-      })
-    } catch (error) {
-      console.error('Error iniciando sesión con Auth0:', error)
-      alert('Auth0 está configurado, pero hay un error de tenant/client. Entraremos en modo demo para la sustentación.')
-    }
-  }
+  const auth0Url =
+    `https://${domain}/authorize?` +
+    `response_type=code&` +
+    `client_id=${encodeURIComponent(clientId)}&` +
+    `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+    `scope=${encodeURIComponent('openid profile email')}&` +
+    `audience=${encodeURIComponent(audience)}`
 
   const handleDemo = () => {
+    localStorage.setItem('agrobodega_demo', 'true')
     navigate('/')
   }
 
@@ -63,10 +54,16 @@ export default function LoginPage() {
           <h2>Bienvenido</h2>
           <p>Inicia sesión para acceder al sistema de gestión agrícola.</p>
 
-          <button
-            type="button"
+          <a
             className="btn btn-primary login-btn"
-            onClick={handleLogin}
+            href={auth0Url}
+            style={{
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
           >
             <svg
               width="18"
@@ -79,7 +76,7 @@ export default function LoginPage() {
               <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
             </svg>
             Iniciar sesión con Auth0
-          </button>
+          </a>
 
           <button
             type="button"
