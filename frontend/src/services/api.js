@@ -1,6 +1,5 @@
 import axios from 'axios'
-
-const API_URL = 'https://agrobodegaa-production.up.railway.app'
+const API_URL = import.meta.env.VITE_API_URL || 'https://90a76c5879.us.serverless.gateways.konggateway.com'
 
 export const createApiClient = (token) => {
   return axios.create({
