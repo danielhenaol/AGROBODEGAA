@@ -1,21 +1,30 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { Navigate } from 'react-router-dom'
+import { useState } from 'react'
 
 export default function LoginPage() {
   const { loginWithRedirect, isAuthenticated, isLoading } = useAuth0()
+  const [error, setError] = useState('')
 
   const handleLogin = async () => {
-    await loginWithRedirect({
-      authorizationParams: {
-        redirect_uri: window.location.origin,
-        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        scope: 'openid profile email',
-        prompt: 'login',
-      },
-      appState: {
-        returnTo: '/',
-      },
-    })
+    try {
+      setError('')
+
+      await loginWithRedirect({
+        authorizationParams: {
+          redirect_uri: window.location.origin,
+          audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+          scope: 'openid profile email',
+          prompt: 'login',
+        },
+        appState: {
+          returnTo: '/',
+        },
+      })
+    } catch (err) {
+      console.error('Error Auth0:', err)
+      setError(err.message || 'No se pudo iniciar sesión con Auth0')
+    }
   }
 
   if (isLoading) {
@@ -48,6 +57,21 @@ export default function LoginPage() {
         <div className="login-box">
           <h2>Bienvenido</h2>
           <p>Inicia sesión para acceder al sistema de gestión agrícola.</p>
+
+          {error && (
+            <div
+              style={{
+                background: '#fee2e2',
+                color: '#991b1b',
+                padding: 12,
+                borderRadius: 8,
+                marginBottom: 16,
+                fontSize: 14,
+              }}
+            >
+              {error}
+            </div>
+          )}
 
           <button
             type="button"
