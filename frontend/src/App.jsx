@@ -12,7 +12,6 @@ import LoginPage from './pages/LoginPage'
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuth0()
-  const isDemo = localStorage.getItem('agrobodega_demo') === 'true'
 
   if (isLoading) {
     return (
@@ -23,7 +22,7 @@ function ProtectedRoute({ children }) {
     )
   }
 
-  return isAuthenticated || isDemo ? children : <Navigate to="/login" replace />
+  return isAuthenticated ? children : <Navigate to="/login" replace />
 }
 
 export default function App() {
