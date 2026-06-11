@@ -1,73 +1,40 @@
-import { useState, useEffect } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
-import { api } from '../services/api'
+import { useEffect, useState } from 'react'
+
+const PRODUCTS_URL =
+  'https://90a76c5879.us.serverless.gateways.konggateway.com/api/v1/products'
 
 export default function Products() {
-  const { getAccessTokenSilently } = useAuth0()
-
   const [products, setProducts] = useState([])
-  const [classificationsMap, setClassificationsMap] = useState({})
   const [loading, setLoading] = useState(true)
-  const [showProductModal, setShowProductModal] = useState(false)
-  const [showClassModal, setShowClassModal] = useState(false)
-  const [selectedProduct, setSelectedProduct] = useState(null)
-  const [editingProduct, setEditingProduct] = useState(null)
-  const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState('')
-  const [productForm, setProductForm] = useState({ name: '' })
-  const [classForm, setClassForm] = useState({ name: '' })
-
-  const getToken = async () => {
-    const isDemo = localStorage.getItem('agrobodega_demo') === 'true'
-
-    if (isDemo) {
-      return null
-    }
-
-    return await getAccessTokenSilently()
-  }
+  const [showProductModal, setShowProductModal] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [productForm, setProductForm] = useState({
+    name: '',
+    description: '',
+  })
 
   const load = async () => {
     setLoading(true)
 
     try {
-      const response = await fetch(
-        'https://90a76c5879.us.serverless.gateways.konggateway.com/api/v1/products',
-        {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json',
-          },
-        }
-      )
+      const response = await fetch(PRODUCTS_URL, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json',
+        },
+      })
 
       if (!response.ok) {
         throw new Error(`Error HTTP: ${response.status}`)
       }
 
       const data = await response.json()
-
       console.log('Productos recibidos desde Kong:', data)
 
       setProducts(Array.isArray(data) ? data : [])
-
-      const classMap = {}
-      data.forEach((p) => {
-        classMap[p.id] = []
-      })
-
-      setClassificationsMap(classMap)
     } catch (error) {
       console.error('Error cargando productos desde Kong:', error)
-      setProducts([])
-    } finally {
-      setLoading(false)
-    }
-  }
-
-      setClassificationsMap(classMap)
-    } catch (error) {
-      console.error('Error cargando productos:', error)
       setProducts([])
     } finally {
       setLoading(false)
@@ -79,14 +46,10 @@ export default function Products() {
   }, [])
 
   const openCreate = () => {
-    setEditingProduct(null)
-    setProductForm({ name: '' })
-    setShowProductModal(true)
-  }
-
-  const openEdit = (p) => {
-    setEditingProduct(p)
-    setProductForm({ name: p.name })
+    setProductForm({
+      name: '',
+      description: '',
+    })
     setShowProductModal(true)
   }
 
@@ -95,80 +58,33 @@ export default function Products() {
     setSaving(true)
 
     try {
-      const token = await getToken()
+      const response = await fetch(PRODUCTS_URL, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(productForm),
+      })
 
-      if (editingProduct) {
-        await api.updateProduct(token, editingProduct.id, productForm)
-        setSuccess('Producto actualizado exitosamente')
-      } else {
-        await api.createProduct(token, productForm)
-        setSuccess('Producto registrado exitosamente')
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`)
       }
 
+      setSuccess('Producto registrado exitosamente')
       setShowProductModal(false)
-      setProductForm({ name: '' })
+      setProductForm({
+        name: '',
+        description: '',
+      })
+
       await load()
       setTimeout(() => setSuccess(''), 3000)
     } catch (error) {
-      console.error('Error guardando producto:', error)
-      alert('No se pudo guardar el producto. Revisa la consola.')
+      console.error('Error registrando producto:', error)
+      alert('No se pudo registrar el producto. Revisa la consola.')
     } finally {
       setSaving(false)
-    }
-  }
-
-  const handleDeleteProduct = async (id) => {
-    if (!window.confirm('¿Seguro que deseas eliminar este producto?')) return
-
-    try {
-      const token = await getToken()
-      await api.deleteProduct(token, id)
-
-      setSuccess('Producto eliminado')
-      await load()
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (error) {
-      console.error('Error eliminando producto:', error)
-      alert('No se pudo eliminar el producto. Revisa la consola.')
-    }
-  }
-
-  const handleCreateClassification = async (e) => {
-    e.preventDefault()
-    setSaving(true)
-
-    try {
-      const token = await getToken()
-
-      await api.createClassification(token, selectedProduct.id, classForm)
-
-      setSuccess('Clasificación registrada exitosamente')
-      setShowClassModal(false)
-      setClassForm({ name: '' })
-      await load()
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (error) {
-      console.error('Error creando clasificación:', error)
-      alert('No se pudo crear la clasificación. Revisa la consola.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleDeleteClassification = async (productId, classId) => {
-    if (!window.confirm('¿Seguro que deseas eliminar esta clasificación?')) return
-
-    try {
-      const token = await getToken()
-
-      await api.deleteClassification(token, productId, classId)
-
-      setSuccess('Clasificación eliminada')
-      await load()
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (error) {
-      console.error('Error eliminando clasificación:', error)
-      alert('No se pudo eliminar la clasificación. Revisa la consola.')
     }
   }
 
@@ -177,7 +93,7 @@ export default function Products() {
       <div className="page-header">
         <div className="page-header-left">
           <h1>Catálogo de Productos</h1>
-          <p>Productos base y sus clasificaciones</p>
+          <p>Productos base registrados desde Kong Gateway</p>
         </div>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -207,8 +123,13 @@ export default function Products() {
             <div className="empty-state">
               <div
                 className="loading-spinner"
-                style={{ borderTopColor: '#38a15c', width: 32, height: 32 }}
+                style={{
+                  borderTopColor: '#38a15c',
+                  width: 32,
+                  height: 32,
+                }}
               />
+              <p>Cargando productos...</p>
             </div>
           </div>
         ) : products.length === 0 ? (
@@ -235,94 +156,24 @@ export default function Products() {
                 <tr>
                   <th>#</th>
                   <th>Producto base</th>
-                  <th>Clasificaciones</th>
-                  <th>Acciones</th>
+                  <th>Descripción</th>
+                  <th>Origen</th>
                 </tr>
               </thead>
 
               <tbody>
                 {products.map((p, i) => (
-                  <tr key={p.id}>
+                  <tr key={p.id || i}>
                     <td style={{ color: '#9ca3af', fontSize: 12 }}>{i + 1}</td>
 
                     <td>
                       <strong>{p.name}</strong>
                     </td>
 
-                    <td>
-                      <div
-                        style={{
-                          display: 'flex',
-                          flexWrap: 'wrap',
-                          gap: 6,
-                          alignItems: 'center',
-                        }}
-                      >
-                        {(classificationsMap[p.id] || []).length === 0 ? (
-                          <span style={{ color: '#9ca3af', fontSize: 12 }}>
-                            Sin clasificaciones
-                          </span>
-                        ) : (
-                          (classificationsMap[p.id] || []).map((c) => (
-                            <span
-                              key={c.id}
-                              className="tag tag-earth"
-                              style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 4,
-                              }}
-                            >
-                              {c.name}
-
-                              <button
-                                onClick={() => handleDeleteClassification(p.id, c.id)}
-                                style={{
-                                  background: 'none',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  color: '#a07040',
-                                  fontSize: 12,
-                                  padding: 0,
-                                  lineHeight: 1,
-                                }}
-                                title="Eliminar clasificación"
-                              >
-                                ✕
-                              </button>
-                            </span>
-                          ))
-                        )}
-
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => {
-                            setSelectedProduct(p)
-                            setClassForm({ name: '' })
-                            setShowClassModal(true)
-                          }}
-                        >
-                          + Clasificación
-                        </button>
-                      </div>
-                    </td>
+                    <td>{p.description || 'Sin descripción'}</td>
 
                     <td>
-                      <div style={{ display: 'flex', gap: 6 }}>
-                        <button
-                          className="btn btn-secondary btn-sm"
-                          onClick={() => openEdit(p)}
-                        >
-                          Editar
-                        </button>
-
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleDeleteProduct(p.id)}
-                        >
-                          Eliminar
-                        </button>
-                      </div>
+                      <span className="tag tag-earth">Kong Gateway</span>
                     </td>
                   </tr>
                 ))}
@@ -341,9 +192,7 @@ export default function Products() {
         >
           <div className="modal">
             <div className="modal-header">
-              <div className="modal-title">
-                {editingProduct ? 'Editar producto' : 'Registrar producto base'}
-              </div>
+              <div className="modal-title">Registrar producto base</div>
 
               <button
                 className="modal-close"
@@ -361,9 +210,30 @@ export default function Products() {
                   <input
                     type="text"
                     value={productForm.name}
-                    onChange={(e) => setProductForm({ name: e.target.value })}
+                    onChange={(e) =>
+                      setProductForm({
+                        ...productForm,
+                        name: e.target.value,
+                      })
+                    }
                     placeholder="Ej: Café, Cacao, Plátano"
                     required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Descripción</label>
+
+                  <input
+                    type="text"
+                    value={productForm.description}
+                    onChange={(e) =>
+                      setProductForm({
+                        ...productForm,
+                        description: e.target.value,
+                      })
+                    }
+                    placeholder="Ej: Producto fresco"
                   />
                 </div>
               </div>
@@ -378,63 +248,7 @@ export default function Products() {
                 </button>
 
                 <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving
-                    ? 'Guardando...'
-                    : editingProduct
-                    ? 'Actualizar'
-                    : 'Registrar producto'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showClassModal && selectedProduct && (
-        <div
-          className="modal-overlay"
-          onClick={(e) => e.target === e.currentTarget && setShowClassModal(false)}
-        >
-          <div className="modal">
-            <div className="modal-header">
-              <div className="modal-title">
-                Nueva clasificación — {selectedProduct.name}
-              </div>
-
-              <button
-                className="modal-close"
-                onClick={() => setShowClassModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleCreateClassification}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label>Nombre de la clasificación *</label>
-
-                  <input
-                    type="text"
-                    value={classForm.name}
-                    onChange={(e) => setClassForm({ name: e.target.value })}
-                    placeholder="Ej: Primera calidad, Segunda, Pasilla"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowClassModal(false)}
-                >
-                  Cancelar
-                </button>
-
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Guardando...' : 'Registrar clasificación'}
+                  {saving ? 'Guardando...' : 'Registrar producto'}
                 </button>
               </div>
             </form>
