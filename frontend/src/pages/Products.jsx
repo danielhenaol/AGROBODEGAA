@@ -31,25 +31,39 @@ export default function Products() {
     setLoading(true)
 
     try {
-      const token = await getToken()
-      const res = await api.getProducts(token)
-      const prods = res.data || []
+      const response = await fetch(
+        'https://90a76c5879.us.serverless.gateways.konggateway.com/api/v1/products',
+        {
+          method: 'GET',
+          headers: {
+            Accept: 'application/json',
+          },
+        }
+      )
 
-      setProducts(prods)
+      if (!response.ok) {
+        throw new Error(`Error HTTP: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      console.log('Productos recibidos desde Kong:', data)
+
+      setProducts(Array.isArray(data) ? data : [])
 
       const classMap = {}
+      data.forEach((p) => {
+        classMap[p.id] = []
+      })
 
-      await Promise.all(
-        prods.map(async (p) => {
-          try {
-            const cr = await api.getClassifications(token, p.id)
-            classMap[p.id] = cr.data || []
-          } catch (error) {
-            console.error('Error cargando clasificaciones:', error)
-            classMap[p.id] = []
-          }
-        })
-      )
+      setClassificationsMap(classMap)
+    } catch (error) {
+      console.error('Error cargando productos desde Kong:', error)
+      setProducts([])
+    } finally {
+      setLoading(false)
+    }
+  }
 
       setClassificationsMap(classMap)
     } catch (error) {
