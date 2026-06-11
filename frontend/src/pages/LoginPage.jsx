@@ -2,16 +2,21 @@ import { useAuth0 } from '@auth0/auth0-react'
 import { Navigate } from 'react-router-dom'
 
 export default function LoginPage() {
-  const { isAuthenticated, isLoading } = useAuth0()
+  const { loginWithRedirect, isAuthenticated, isLoading } = useAuth0()
 
-  const auth0Url =
-    'https://dev-04xw5712h1kpdx0f.us.auth0.com/authorize' +
-    '?response_type=code' +
-    '&client_id=9yZh6WCLawIypifRi28FZPCaRHpxiHPN' +
-    '&redirect_uri=https%3A%2F%2Fagrobodega.pages.dev' +
-    '&scope=openid%20profile%20email' +
-    '&audience=https%3A%2F%2Fagrobodega.api' +
-    '&prompt=login'
+  const handleLogin = () => {
+    loginWithRedirect({
+      authorizationParams: {
+        redirect_uri: window.location.origin,
+        audience: import.meta.env.VITE_AUTH0_AUDIENCE,
+        scope: 'openid profile email',
+        prompt: 'login',
+      },
+      appState: {
+        returnTo: '/',
+      },
+    })
+  }
 
   if (isLoading) {
     return (
@@ -44,16 +49,10 @@ export default function LoginPage() {
           <h2>Bienvenido</h2>
           <p>Inicia sesión para acceder al sistema de gestión agrícola.</p>
 
-          <a
-            href={auth0Url}
+          <button
+            type="button"
             className="btn btn-primary login-btn"
-            style={{
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-            }}
+            onClick={handleLogin}
           >
             <svg
               width="18"
@@ -66,7 +65,7 @@ export default function LoginPage() {
               <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
             </svg>
             Iniciar sesión con Auth0
-          </a>
+          </button>
 
           <p
             style={{
