@@ -1,24 +1,18 @@
 import { useEffect, useState } from 'react'
 
-const PRODUCTS_URL =
-  'https://90a76c5879.us.serverless.gateways.konggateway.com/api/v1/products'
+const PRODUCTS_URL = '/api/v1/products'
 
 export default function Products() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
-  const [success, setSuccess] = useState('')
-  const [showProductModal, setShowProductModal] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [productForm, setProductForm] = useState({
-    name: '',
-    description: '',
-  })
+  const [error, setError] = useState('')
 
-  const load = async () => {
+  const loadProducts = async () => {
     setLoading(true)
+    setError('')
 
     try {
-      const response = await fetch(PRODUCTS_URL, {
+      const response = await fetch(`${PRODUCTS_URL}?t=${Date.now()}`, {
         method: 'GET',
         headers: {
           Accept: 'application/json',
@@ -26,96 +20,54 @@ export default function Products() {
       })
 
       if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`)
+        throw new Error(`Error HTTP ${response.status}`)
       }
 
       const data = await response.json()
-      console.log('Productos recibidos desde Kong:', data)
 
-      setProducts(Array.isArray(data) ? data : [])
-    } catch (error) {
-      console.error('Error cargando productos desde Kong:', error)
+      console.log('Productos recibidos:', data)
+
+      if (Array.isArray(data)) {
+        setProducts(data)
+      } else {
+        setProducts([])
+        setError('La respuesta no es una lista de productos')
+      }
+    } catch (err) {
+      console.error('Error cargando productos:', err)
       setProducts([])
+      setError(err.message)
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
-    load()
+    loadProducts()
   }, [])
-
-  const openCreate = () => {
-    setProductForm({
-      name: '',
-      description: '',
-    })
-    setShowProductModal(true)
-  }
-
-  const handleProductSubmit = async (e) => {
-    e.preventDefault()
-    setSaving(true)
-
-    try {
-      const response = await fetch(PRODUCTS_URL, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(productForm),
-      })
-
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`)
-      }
-
-      setSuccess('Producto registrado exitosamente')
-      setShowProductModal(false)
-      setProductForm({
-        name: '',
-        description: '',
-      })
-
-      await load()
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (error) {
-      console.error('Error registrando producto:', error)
-      alert('No se pudo registrar el producto. Revisa la consola.')
-    } finally {
-      setSaving(false)
-    }
-  }
 
   return (
     <div>
       <div className="page-header">
         <div className="page-header-left">
           <h1>Catálogo de Productos</h1>
-          <p>Productos base registrados desde Kong Gateway</p>
+          <p>Productos base cargados desde Cloudflare Pages → Kong Gateway</p>
         </div>
 
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <span className="badge badge-earth">{products.length} productos</span>
 
-          <button className="btn btn-primary" onClick={openCreate}>
-            <svg
-              width="16"
-              height="16"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-            Nuevo producto
+          <button className="btn btn-primary" onClick={loadProducts}>
+            Recargar productos
           </button>
         </div>
       </div>
 
-      {success && <div className="alert alert-success">✓ {success}</div>}
+      {error && (
+        <div className="alert alert-danger">
+          Error cargando productos: {error}
+        </div>
+      )}
 
       <div className="card">
         {loading ? (
@@ -146,7 +98,7 @@ export default function Products() {
                 <path d="M20 12V8l-4-4H8L4 8v4M4 12h16M12 12v9" />
               </svg>
               <h3>No hay productos registrados</h3>
-              <p>Registra el primer producto del catálogo</p>
+              <p>No se recibieron productos desde la API</p>
             </div>
           </div>
         ) : (
@@ -155,22 +107,22 @@ export default function Products() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Producto base</th>
+                  <th>Producto</th>
                   <th>Descripción</th>
                   <th>Origen</th>
                 </tr>
               </thead>
 
               <tbody>
-                {products.map((p, i) => (
-                  <tr key={p.id || i}>
-                    <td style={{ color: '#9ca3af', fontSize: 12 }}>{i + 1}</td>
+                {products.map((product, index) => (
+                  <tr key={product.id || index}>
+                    <td>{index + 1}</td>
 
                     <td>
-                      <strong>{p.name}</strong>
+                      <strong>{product.name}</strong>
                     </td>
 
-                    <td>{p.description || 'Sin descripción'}</td>
+                    <td>{product.description || 'Sin descripción'}</td>
 
                     <td>
                       <span className="tag tag-earth">Kong Gateway</span>
@@ -182,79 +134,6 @@ export default function Products() {
           </div>
         )}
       </div>
-
-      {showProductModal && (
-        <div
-          className="modal-overlay"
-          onClick={(e) =>
-            e.target === e.currentTarget && setShowProductModal(false)
-          }
-        >
-          <div className="modal">
-            <div className="modal-header">
-              <div className="modal-title">Registrar producto base</div>
-
-              <button
-                className="modal-close"
-                onClick={() => setShowProductModal(false)}
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleProductSubmit}>
-              <div className="modal-body">
-                <div className="form-group">
-                  <label>Nombre del producto *</label>
-
-                  <input
-                    type="text"
-                    value={productForm.name}
-                    onChange={(e) =>
-                      setProductForm({
-                        ...productForm,
-                        name: e.target.value,
-                      })
-                    }
-                    placeholder="Ej: Café, Cacao, Plátano"
-                    required
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Descripción</label>
-
-                  <input
-                    type="text"
-                    value={productForm.description}
-                    onChange={(e) =>
-                      setProductForm({
-                        ...productForm,
-                        description: e.target.value,
-                      })
-                    }
-                    placeholder="Ej: Producto fresco"
-                  />
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowProductModal(false)}
-                >
-                  Cancelar
-                </button>
-
-                <button type="submit" className="btn btn-primary" disabled={saving}>
-                  {saving ? 'Guardando...' : 'Registrar producto'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
