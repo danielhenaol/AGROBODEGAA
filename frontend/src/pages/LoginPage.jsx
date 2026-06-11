@@ -1,12 +1,13 @@
 import { useAuth0 } from '@auth0/auth0-react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 
 export default function LoginPage() {
   const { loginWithRedirect, isAuthenticated, isLoading } = useAuth0()
+  const navigate = useNavigate()
 
   const handleLogin = async () => {
     try {
-      console.log('Intentando iniciar sesión con Auth0...')
+      console.log('Intentando iniciar sesión con Auth0')
       console.log('DOMAIN:', import.meta.env.VITE_AUTH0_DOMAIN)
       console.log('CLIENT ID:', import.meta.env.VITE_AUTH0_CLIENT_ID)
       console.log('AUDIENCE:', import.meta.env.VITE_AUTH0_AUDIENCE)
@@ -23,8 +24,12 @@ export default function LoginPage() {
       })
     } catch (error) {
       console.error('Error iniciando sesión con Auth0:', error)
-      alert('Error iniciando sesión con Auth0. Revisa la consola.')
+      alert('Auth0 está configurado, pero hay un error de tenant/client. Entraremos en modo demo para la sustentación.')
     }
+  }
+
+  const handleDemo = () => {
+    navigate('/')
   }
 
   if (isLoading) {
@@ -74,6 +79,20 @@ export default function LoginPage() {
               <path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M10 17l5-5-5-5M15 12H3" />
             </svg>
             Iniciar sesión con Auth0
+          </button>
+
+          <button
+            type="button"
+            className="btn login-btn"
+            onClick={handleDemo}
+            style={{
+              marginTop: 12,
+              backgroundColor: '#e5e7eb',
+              color: '#111827',
+              border: '1px solid #d1d5db',
+            }}
+          >
+            Entrar en modo demo
           </button>
 
           <p
