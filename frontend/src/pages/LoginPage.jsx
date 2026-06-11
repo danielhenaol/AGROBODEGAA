@@ -7,7 +7,7 @@ export default function LoginPage() {
   const auth0Url =
     'https://dev-04xw5712h1kpdx0f.us.auth0.com/authorize' +
     '?response_type=code' +
-    '&client_id=9yZh6WCLawIypifRi28FZPCaRHpXiHPN' +
+    '&client_id=9yZh6WCLawIypifRi28FZPCaRHpxiHPN' +
     '&redirect_uri=https%3A%2F%2Fagrobodega.pages.dev' +
     '&scope=openid%20profile%20email' +
     '&audience=https%3A%2F%2Fagrobodega.api' +
