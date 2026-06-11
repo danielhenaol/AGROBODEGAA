@@ -1,29 +1,22 @@
 package com.agrobodega.infrastructure.config;
 
-import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
-import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class OpenApiConfig {
 
     @Bean
     public OpenAPI customOpenAPI() {
+        Server railwayServer = new Server();
+        railwayServer.setUrl("https://agrobodegaa-production-c214.up.railway.app");
+        railwayServer.setDescription("Railway Production Server");
+
         return new OpenAPI()
-                .info(new Info()
-                        .title("AGROBODEGA API")
-                        .description("Sistema de gestión de bodega agrícola")
-                        .version("1.0.0"))
-                .addSecurityItem(new SecurityRequirement().addList("BearerAuth"))
-                .components(new Components()
-                        .addSecuritySchemes("BearerAuth", new SecurityScheme()
-                                .name("BearerAuth")
-                                .type(SecurityScheme.Type.HTTP)
-                                .scheme("bearer")
-                                .bearerFormat("JWT")));
+                .servers(List.of(railwayServer));
     }
 }
