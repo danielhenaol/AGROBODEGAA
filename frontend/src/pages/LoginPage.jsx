@@ -1,8 +1,15 @@
 import { useAuth0 } from '@auth0/auth0-react'
 import { Navigate } from 'react-router-dom'
+import { useEffect } from 'react'
+import { API_URL } from '../services/api'
 
 export default function LoginPage() {
   const { loginWithRedirect, isAuthenticated, isLoading } = useAuth0()
+
+  // Despierta el gateway y el backend (Render gratis los duerme) mientras la persona inicia sesion
+  useEffect(() => {
+    fetch(`${API_URL}/api/v1/catalogs/messages/PRODUCT_NOT_FOUND`).catch(() => {})
+  }, [])
 
   const handleLogin = () => {
     loginWithRedirect({

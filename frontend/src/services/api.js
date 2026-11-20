@@ -1,14 +1,36 @@
 import axios from 'axios'
 
-const API_URL =
+export const API_URL =
     import.meta.env.VITE_API_URL ||
     'https://agrobodega-gateway.onrender.com'
 
+const TRANSITORIO = [502, 503, 504]
+const esperar = (ms) => new Promise((r) => setTimeout(r, ms))
+
+/**
+ * Cliente HTTP. Los servicios gratuitos de Render se duermen y tardan en despertar:
+ * mientras tanto responden 502/503/504 o no responden. Las lecturas (GET) se
+ * reintentan solas; las escrituras NO, para no duplicar un registro.
+ */
 export const createApiClient = (token) => {
-  return axios.create({
+  const client = axios.create({
     baseURL: API_URL,
+    timeout: 70000,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   })
+
+  client.interceptors.response.use(undefined, async (error) => {
+    const cfg = error.config
+    const transitorio = !error.response || TRANSITORIO.includes(error.response.status)
+    if (cfg && cfg.method === 'get' && transitorio && (cfg.__reintentos || 0) < 5) {
+      cfg.__reintentos = (cfg.__reintentos || 0) + 1
+      await esperar(8000)
+      return client(cfg)
+    }
+    return Promise.reject(error)
+  })
+
+  return client
 }
 
 export const api = {
@@ -47,7 +69,10 @@ export const errorMessage = (e) => {
   if (data?.message) {
     return Array.isArray(data.message) ? data.message.join(' · ') : data.message
   }
+  if (e?.response && TRANSITORIO.includes(e.response.status)) {
+    return 'El servidor está despertando (plan gratuito). Espera un minuto e intenta de nuevo.'
+  }
   if (e?.response) return `Error ${e.response.status} del servidor`
-  if (e?.code === 'ERR_NETWORK') return 'No se pudo conectar con el servidor (puede estar despertando, intenta de nuevo en un minuto)'
+  if (e?.code === 'ERR_NETWORK' || e?.code === 'ECONNABORTED') return 'No se pudo conectar con el servidor (puede estar despertando, intenta de nuevo en un minuto)'
   return e?.message || 'Error inesperado'
 }
