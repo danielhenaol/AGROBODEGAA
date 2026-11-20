@@ -44,7 +44,7 @@ export default function Entries() {
 
   // SSE — escucha actualizaciones en tiempo real
   useEffect(() => {
-    const backendUrl = import.meta.env.VITE_API_URL || 'https://agrobodegaa-production.up.railway.app'
+    const backendUrl = import.meta.env.VITE_API_URL || 'https://agrobodega-gateway.onrender.com'
     const eventSource = new EventSource(`${backendUrl}/api/v1/inventory/stream`)
 
     eventSource.addEventListener('inventory-update', (event) => {
