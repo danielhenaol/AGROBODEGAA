@@ -1,5 +1,7 @@
 package com.agrobodega.infrastructure.controller;
 
+import com.agrobodega.infrastructure.exception.BusinessException;
+
 import com.agrobodega.domain.entity.Farmer;
 import com.agrobodega.domain.entity.Lot;
 import com.agrobodega.domain.entity.ProductBase;
@@ -44,11 +46,11 @@ public class LotController {
     @PostMapping
     public ResponseEntity<Lot> createLot(@RequestBody Map<String, Object> body) {
         Farmer farmer = farmerRepository.findById(UUID.fromString(body.get("farmerId").toString()))
-                .orElseThrow(() -> new RuntimeException("Cosechero no encontrado"));
+                .orElseThrow(() -> new BusinessException("FARMER_NOT_FOUND"));
         ProductBase product = productBaseRepository.findById(UUID.fromString(body.get("productBaseId").toString()))
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new BusinessException("PRODUCT_NOT_FOUND"));
         ProductClassification classification = classificationRepository.findById(UUID.fromString(body.get("classificationId").toString()))
-                .orElseThrow(() -> new RuntimeException("Clasificación no encontrada"));
+                .orElseThrow(() -> new BusinessException("CLASSIFICATION_NOT_FOUND"));
 
         Lot lot = new Lot();
         lot.setFarmer(farmer);

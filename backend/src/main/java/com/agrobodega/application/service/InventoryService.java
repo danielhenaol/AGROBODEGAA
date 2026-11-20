@@ -1,5 +1,7 @@
 package com.agrobodega.application.service;
 
+import com.agrobodega.infrastructure.exception.BusinessException;
+
 import com.agrobodega.application.dto.request.EntryMovementRequestDTO;
 import com.agrobodega.application.dto.request.ExitMovementRequestDTO;
 import com.agrobodega.application.dto.response.EntryMovementResponseDTO;
@@ -33,9 +35,6 @@ import java.math.RoundingMode;
 @Service
 public class InventoryService {
 
-    private static final BigDecimal ENTRY_COMMISSION_RATE = new BigDecimal("0.05");
-    private static final BigDecimal EXIT_COMMISSION_RATE = new BigDecimal("0.03");
-
     private final ProductBaseRepository productBaseRepository;
     private final ProductClassificationRepository classificationRepository;
     private final FarmerRepository farmerRepository;
@@ -46,6 +45,7 @@ public class InventoryService {
     private final EntryChargeRepository entryChargeRepository;
     private final ExitChargeRepository exitChargeRepository;
     private final NotificationService notificationService;
+    private final CatalogService catalogService;
     private final InventoryStreamController inventoryStreamController;
 
     public InventoryService(
@@ -59,6 +59,7 @@ public class InventoryService {
             EntryChargeRepository entryChargeRepository,
             ExitChargeRepository exitChargeRepository,
             NotificationService notificationService,
+            CatalogService catalogService,
             InventoryStreamController inventoryStreamController) {
 
         this.productBaseRepository = productBaseRepository;
@@ -71,19 +72,20 @@ public class InventoryService {
         this.entryChargeRepository = entryChargeRepository;
         this.exitChargeRepository = exitChargeRepository;
         this.notificationService = notificationService;
+        this.catalogService = catalogService;
         this.inventoryStreamController = inventoryStreamController;
     }
 
     @Transactional
     public EntryMovementResponseDTO registerEntry(EntryMovementRequestDTO request) {
         ProductBase productBase = productBaseRepository.findById(request.getProductBaseId())
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new BusinessException("PRODUCT_NOT_FOUND"));
 
         ProductClassification classification = classificationRepository.findById(request.getClassificationId())
-                .orElseThrow(() -> new RuntimeException("Clasificación no encontrada"));
+                .orElseThrow(() -> new BusinessException("CLASSIFICATION_NOT_FOUND"));
 
         Farmer farmer = farmerRepository.findById(request.getFarmerId())
-                .orElseThrow(() -> new RuntimeException("Cosechero no encontrado"));
+                .orElseThrow(() -> new BusinessException("FARMER_NOT_FOUND"));
 
         BigDecimal totalPrice = request.getQuantity()
                 .multiply(request.getPricePerUnit())
@@ -100,7 +102,7 @@ public class InventoryService {
         entryMovement = entryMovementRepository.save(entryMovement);
 
         BigDecimal commissionAmount = totalPrice
-                .multiply(ENTRY_COMMISSION_RATE)
+                .multiply(catalogService.getDecimal("ENTRY_COMMISSION_RATE"))
                 .setScale(2, RoundingMode.HALF_UP);
 
         EntryCharge entryCharge = new EntryCharge();
@@ -143,14 +145,14 @@ public class InventoryService {
     @Transactional
     public ExitMovementResponseDTO registerExit(ExitMovementRequestDTO request) {
         Lot lot = lotRepository.findById(request.getLotId())
-                .orElseThrow(() -> new RuntimeException("Lote no encontrado"));
+                .orElseThrow(() -> new BusinessException("LOT_NOT_FOUND"));
 
         if (lot.getQuantity().compareTo(request.getQuantity()) < 0) {
-            throw new RuntimeException("Stock insuficiente.");
+            throw new BusinessException("INSUFFICIENT_STOCK");
         }
 
         Trader trader = traderRepository.findById(request.getTraderId())
-                .orElseThrow(() -> new RuntimeException("Negociante no encontrado"));
+                .orElseThrow(() -> new BusinessException("TRADER_NOT_FOUND"));
 
         BigDecimal totalPrice = request.getQuantity()
                 .multiply(request.getPricePerUnit())
@@ -169,7 +171,7 @@ public class InventoryService {
         lotRepository.save(lot);
 
         BigDecimal commissionAmount = totalPrice
-                .multiply(EXIT_COMMISSION_RATE)
+                .multiply(catalogService.getDecimal("EXIT_COMMISSION_RATE"))
                 .setScale(2, RoundingMode.HALF_UP);
 
         ExitCharge exitCharge = new ExitCharge();

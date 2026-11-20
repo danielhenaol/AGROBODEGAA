@@ -1,5 +1,7 @@
 package com.agrobodega.infrastructure.controller;
 
+import com.agrobodega.infrastructure.exception.BusinessException;
+
 import com.agrobodega.application.dto.request.ProductBaseRequestDTO;
 import com.agrobodega.domain.entity.ProductBase;
 import com.agrobodega.domain.entity.ProductClassification;
@@ -44,7 +46,7 @@ public class ProductBaseController {
             @PathVariable UUID productId,
             @RequestBody Map<String, String> body) {
         ProductBase product = productBaseRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("Producto no encontrado"));
+                .orElseThrow(() -> new BusinessException("PRODUCT_NOT_FOUND"));
         ProductClassification classification = new ProductClassification();
         classification.setName(body.get("name"));
         classification.setProductBase(product);
