@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
-import { api } from '../services/api'
+import { api, errorMessage } from '../services/api'
+import { useToken } from '../services/useToken'
 
 const emptyLine = { productBaseId: '', classificationId: '', quantity: '', pricePerUnit: '' }
 
 export default function Entries() {
-  const { getAccessTokenSilently } = useAuth0()
+  const getAccessTokenSilently = useToken()
+  const [error, setError] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [farmers, setFarmers] = useState([])
   const [products, setProducts] = useState([])
@@ -34,7 +35,7 @@ export default function Entries() {
       setProducts(p.data || [])
       setEntries(e.data || [])
     } catch (err) {
-      console.error(err)
+      console.error(err); setError(errorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -67,7 +68,7 @@ export default function Entries() {
       const token = await getAccessTokenSilently()
       const res = await api.getClassifications(token, productId)
       setClassMap(prev => ({ ...prev, [productId]: res.data || [] }))
-    } catch (e) { console.error(e) }
+    } catch (e) { console.error(e); setError(errorMessage(e)) }
   }
 
   const updateLine = (index, field, value) => {
@@ -101,7 +102,7 @@ export default function Entries() {
       setTimeout(() => setSuccess(false), 3000)
       setTimeout(() => loadData(), 800)
     } catch (e) {
-      console.error(e)
+      console.error(e); setError(errorMessage(e))
     } finally {
       setSaving(false)
     }
@@ -147,7 +148,9 @@ export default function Entries() {
             <div className="alert alert-success">✓ Entrada registrada exitosamente</div>
         )}
 
-        <div className="card">
+        {error && <div className="alert alert-danger" onClick={() => setError('')}>⚠ {error}</div>}
+
+      <div className="card">
           {loading ? (
               <div className="card-body"><div className="empty-state"><div className="loading-spinner" style={{ borderTopColor: '#38a15c', width: 32, height: 32 }} /></div></div>
           ) : entries.length === 0 ? (

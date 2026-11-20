@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
 import { useAuth0 } from '@auth0/auth0-react'
-import { api } from '../services/api'
+import { api, errorMessage } from '../services/api'
+import { useToken } from '../services/useToken'
 
 export default function Dashboard() {
-  const { getAccessTokenSilently, user } = useAuth0()
+  const getAccessTokenSilently = useToken()
+  const { user } = useAuth0()
   const [stats, setStats] = useState({ farmers: 0, traders: 0, lots: 0, products: 0 })
   const [loading, setLoading] = useState(true)
 

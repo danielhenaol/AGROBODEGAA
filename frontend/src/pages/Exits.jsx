@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
-import { api } from '../services/api'
+import { api, errorMessage } from '../services/api'
+import { useToken } from '../services/useToken'
 
 export default function Exits() {
-  const { getAccessTokenSilently } = useAuth0()
+  const getAccessTokenSilently = useToken()
+  const [error, setError] = useState('')
   const [showModal, setShowModal] = useState(false)
   const [traders, setTraders] = useState([])
   const [lots, setLots] = useState([])
@@ -20,7 +21,7 @@ export default function Exits() {
         const [t, l] = await Promise.all([api.getTraders(token), api.getLots(token)])
         setTraders(t.data || [])
         setLots(l.data || [])
-      } catch (e) { console.error(e) }
+      } catch (e) { console.error(e); setError(errorMessage(e)) }
     }
     load()
   }, [])
@@ -42,7 +43,7 @@ export default function Exits() {
       setForm({ traderId: '', lotId: '', quantity: '', pricePerUnit: '', exitDate: new Date().toISOString().split('T')[0] })
       setTimeout(() => setSuccess(false), 3000)
     } catch (e) {
-      console.error(e)
+      console.error(e); setError(errorMessage(e))
     } finally {
       setLoading(false)
     }
@@ -68,6 +69,8 @@ export default function Exits() {
           ✓ Salida registrada exitosamente en el sistema
         </div>
       )}
+
+      {error && <div className="alert alert-danger" onClick={() => setError('')}>⚠ {error}</div>}
 
       <div className="card">
         <div className="card-body">

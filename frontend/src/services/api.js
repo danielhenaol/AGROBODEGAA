@@ -38,3 +38,14 @@ export const api = {
 }
 
 export const SSE_URL = `${API_URL}/api/v1/inventory/stream`
+
+/** Convierte un error de axios en un texto legible para el usuario. */
+export const errorMessage = (e) => {
+  const data = e?.response?.data
+  if (data?.message) {
+    return Array.isArray(data.message) ? data.message.join(' · ') : data.message
+  }
+  if (e?.response) return `Error ${e.response.status} del servidor`
+  if (e?.code === 'ERR_NETWORK') return 'No se pudo conectar con el servidor (puede estar despertando, intenta de nuevo en un minuto)'
+  return e?.message || 'Error inesperado'
+}

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
-import { api } from '../services/api'
+import { api, errorMessage } from '../services/api'
+import { useToken } from '../services/useToken'
 
 export default function Traders() {
-  const { getAccessTokenSilently } = useAuth0()
+  const getAccessTokenSilently = useToken()
+  const [error, setError] = useState('')
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
@@ -17,7 +18,7 @@ export default function Traders() {
       const token = await getAccessTokenSilently()
       const res = await api.getTraders(token)
       setData(res.data || [])
-    } catch (e) { console.error(e) }
+    } catch (e) { console.error(e); setError(errorMessage(e)) }
     finally { setLoading(false) }
   }
 
@@ -42,7 +43,7 @@ export default function Traders() {
       setForm({ name: '', lastName: '', phone: '' })
       load()
       setTimeout(() => setSuccess(''), 3000)
-    } catch (e) { console.error(e) }
+    } catch (e) { console.error(e); setError(errorMessage(e)) }
     finally { setSaving(false) }
   }
 
@@ -54,7 +55,7 @@ export default function Traders() {
       setSuccess('Negociante eliminado')
       load()
       setTimeout(() => setSuccess(''), 3000)
-    } catch (e) { console.error(e) }
+    } catch (e) { console.error(e); setError(errorMessage(e)) }
   }
 
   return (
@@ -74,6 +75,8 @@ export default function Traders() {
       </div>
 
       {success && <div className="alert alert-success">✓ {success}</div>}
+
+      {error && <div className="alert alert-danger" onClick={() => setError('')}>⚠ {error}</div>}
 
       <div className="card">
         {loading ? (

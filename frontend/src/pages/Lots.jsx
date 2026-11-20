@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
-import { api } from '../services/api'
+import { api, errorMessage } from '../services/api'
+import { useToken } from '../services/useToken'
 
 export default function Lots() {
-  const { getAccessTokenSilently } = useAuth0()
+  const getAccessTokenSilently = useToken()
+  const [error, setError] = useState('')
   const [lots, setLots] = useState([])
   const [farmers, setFarmers] = useState([])
   const [products, setProducts] = useState([])
@@ -28,7 +29,7 @@ export default function Lots() {
       setLots(l.data || [])
       setFarmers(f.data || [])
       setProducts(p.data || [])
-    } catch (e) { console.error(e) }
+    } catch (e) { console.error(e); setError(errorMessage(e)) }
     finally { setLoading(false) }
   }
 
@@ -41,7 +42,7 @@ export default function Lots() {
       const token = await getAccessTokenSilently()
       const res = await api.getClassifications(token, productId)
       setClassifications(res.data || [])
-    } catch (e) { console.error(e) }
+    } catch (e) { console.error(e); setError(errorMessage(e)) }
   }
 
   const handleSubmit = async (e) => {
@@ -61,7 +62,7 @@ export default function Lots() {
       setForm({ farmerId: '', productBaseId: '', classificationId: '', quantity: '', entryDate: new Date().toISOString().split('T')[0] })
       load()
       setTimeout(() => setSuccess(false), 3000)
-    } catch (e) { console.error(e) }
+    } catch (e) { console.error(e); setError(errorMessage(e)) }
     finally { setSaving(false) }
   }
 
@@ -82,6 +83,8 @@ export default function Lots() {
       </div>
 
       {success && <div className="alert alert-success">✓ Lote registrado exitosamente</div>}
+
+      {error && <div className="alert alert-danger" onClick={() => setError('')}>⚠ {error}</div>}
 
       <div className="card">
         {loading ? (

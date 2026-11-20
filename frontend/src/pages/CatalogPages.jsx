@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react'
-import { useAuth0 } from '@auth0/auth0-react'
-import { api } from '../services/api'
+import { api, errorMessage } from '../services/api'
+import { useToken } from '../services/useToken'
 
 function DataPage({ title, subtitle, fetchFn, columns, EmptyIcon, emptyText }) {
-  const { getAccessTokenSilently } = useAuth0()
+  const getAccessTokenSilently = useToken()
   const [data, setData] = useState([])
   const [loading, setLoading] = useState(true)
 

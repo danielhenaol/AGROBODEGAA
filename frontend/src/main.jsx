@@ -9,10 +9,15 @@ createRoot(document.getElementById('root')).render(
     <Auth0Provider
       domain={import.meta.env.VITE_AUTH0_DOMAIN}
       clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
+      // Guardar la sesion en localStorage y usar refresh tokens evita que el
+      // navegador bloquee la renovacion del token (cookies de terceros).
+      cacheLocation="localstorage"
+      useRefreshTokens
+      useRefreshTokensFallback
       authorizationParams={{
         redirect_uri: window.location.origin,
         audience: import.meta.env.VITE_AUTH0_AUDIENCE,
-        scope: 'openid profile email',
+        scope: 'openid profile email offline_access',
       }}
     >
       <App />
