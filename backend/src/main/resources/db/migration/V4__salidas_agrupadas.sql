@@ -17,7 +17,7 @@ Productos:
 {{items}}
 
 Total de bultos: {{totalQuantity}}
-Valor total: ${{totalPrice}}
+Valor total ($): {{totalPrice}}
 
 AGROBODEGA$$
 WHERE event_code = 'EXIT_REGISTERED' AND channel = 'EMAIL';

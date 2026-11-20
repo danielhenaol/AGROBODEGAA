@@ -22,7 +22,7 @@ Productos:
 {{items}}
 
 Total de bultos: {{totalQuantity}}
-Valor total: ${{totalPrice}}
+Valor total ($): {{totalPrice}}
 
 AGROBODEGA$$
 WHERE event_code = 'ENTRY_REGISTERED' AND channel = 'EMAIL';
@@ -37,7 +37,7 @@ Negociante: {{traderName}}
 Producto: {{productName}}
 Clasificación: {{classification}}
 Bultos: {{quantity}}
-Valor total: ${{totalPrice}}
+Valor total ($): {{totalPrice}}
 Bultos restantes del lote: {{remainingQuantity}}
 
 AGROBODEGA$$
