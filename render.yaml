@@ -1,0 +1,82 @@
+# Despliegue en Render (plan gratis). Se usa como "Blueprint":
+#   Render > New > Blueprint > elegir este repositorio.
+# Cada servicio se despliega solo cuando pasan las pruebas de GitHub Actions.
+
+envVarGroups:
+  # Valor compartido entre el backend y el servicio de notificaciones.
+  # Render lo genera una sola vez y lo inyecta en ambos.
+  - name: agrobodega-shared
+    envVars:
+      - key: INTERNAL_TOKEN
+        generateValue: true
+
+services:
+  # ---------------------------------------------------------------- Gateway
+  - type: web
+    name: agrobodega-gateway
+    runtime: docker
+    plan: free
+    dockerfilePath: ./api-gateway/Dockerfile
+    dockerContext: ./api-gateway
+    healthCheckPath: /actuator/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: SERVER_PORT
+        value: "10000"
+      - key: JAVA_TOOL_OPTIONS
+        value: -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1
+      - key: BACKEND_URL
+        value: https://agrobodega-backend.onrender.com
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://agrobodegaa.pages.dev,http://localhost:5173
+
+  # ---------------------------------------------------------------- Backend
+  - type: web
+    name: agrobodega-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /actuator/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - fromGroup: agrobodega-shared
+      - key: SERVER_PORT
+        value: "10000"
+      - key: JAVA_TOOL_OPTIONS
+        value: -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1
+      - key: NOTIFICATION_SERVICE_URL
+        value: https://agrobodega-notification.onrender.com
+      # Supabase: Connect > Session pooler. Se piden al crear el Blueprint.
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+
+  # ----------------------------------------------------- Notificaciones
+  - type: web
+    name: agrobodega-notification
+    runtime: docker
+    plan: free
+    dockerfilePath: ./notification-service/Dockerfile
+    dockerContext: ./notification-service
+    healthCheckPath: /actuator/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - fromGroup: agrobodega-shared
+      - key: SERVER_PORT
+        value: "10000"
+      - key: JAVA_TOOL_OPTIONS
+        value: -Xmx300m -XX:+UseSerialGC -XX:TieredStopAtLevel=1
+      - key: RESEND_FROM
+        value: onboarding@resend.dev
+      - key: RESEND_API_KEY
+        sync: false
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
