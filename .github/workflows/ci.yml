@@ -6,22 +6,54 @@ on:
   pull_request:
     branches: [ main ]
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
+# Si llega un push nuevo a la misma rama, cancela la ejecucion anterior.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
+jobs:
+  java:
+    name: Java (backend, notification-service, api-gateway)
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Java 21
+      - name: Java 21
         uses: actions/setup-java@v4
         with:
+          distribution: temurin
           java-version: '21'
-          distribution: 'microsoft'
+          cache: maven
 
-      - name: Build with Maven
-        run: mvn clean compile -f backend/pom.xml
+      # Compila los 3 modulos y corre sus pruebas desde el pom de la raiz.
+      - name: Compilar y probar
+        run: mvn -B -ntp verify
 
-      - name: Run tests
-        run: mvn test -f backend/pom.xml
+  frontend:
+    name: Frontend (React)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      # Informativo por ahora: no bloquea mientras se ordena el codigo.
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
+
+      - name: Build
+        run: npm run build
