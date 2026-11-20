@@ -81,20 +81,21 @@ export default function Entries() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
     setSaving(true)
     try {
       const token = await getAccessTokenSilently()
-      for (const line of lines) {
-        await api.createEntry(token, {
-          farmerId: header.farmerId,
+      await api.createEntry(token, {
+        farmerId: header.farmerId,
+        lotNumber: parseInt(header.lotNumber),
+        entryDate: header.entryDate,
+        items: lines.map(line => ({
           productBaseId: line.productBaseId,
           classificationId: line.classificationId,
-          lotNumber: parseInt(header.lotNumber),
-          quantity: parseFloat(line.quantity),
+          quantity: parseInt(line.quantity),
           pricePerUnit: parseFloat(line.pricePerUnit),
-          entryDate: header.entryDate
-        })
-      }
+        })),
+      })
       setSuccess(true)
       setShowModal(false)
       setHeader({ farmerId: '', lotNumber: '', entryDate: new Date().toISOString().split('T')[0] })
@@ -108,23 +109,10 @@ export default function Entries() {
     }
   }
 
-  const getFarmerName = (entry) => {
-    if (entry.farmerName) return entry.farmerName
-    if (entry.farmer) return `${entry.farmer.name} ${entry.farmer.lastName}`
-    return '—'
-  }
+  const money = (n) => `$${Number(n ?? 0).toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-  const getProductName = (entry) => {
-    if (entry.productName) return entry.productName
-    if (entry.classification?.productBase) return entry.classification.productBase.name
-    return '—'
-  }
-
-  const getClassificationName = (entry) => {
-    if (entry.classificationName) return entry.classificationName
-    if (entry.classification) return entry.classification.name
-    return '—'
-  }
+  const totalBultos = lines.reduce((sum, l) => sum + (parseInt(l.quantity) || 0), 0)
+  const totalValor = lines.reduce((sum, l) => sum + (parseInt(l.quantity) || 0) * (parseFloat(l.pricePerUnit) || 0), 0)
 
   return (
       <div>
@@ -135,7 +123,7 @@ export default function Entries() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 12, color: '#6b7280' }}>{sseStatus}</span>
-            <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+            <button className="btn btn-primary" onClick={() => { setError(''); setShowModal(true) }}>
               <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                 <path d="M12 5v14M5 12h14"/>
               </svg>
@@ -167,18 +155,24 @@ export default function Entries() {
               <div className="table-container">
                 <table>
                   <thead>
-                  <tr><th>Fecha</th><th>Cosechero</th><th>Producto</th><th>Clasificación</th><th>Lote</th><th>Bultos</th><th>Total</th></tr>
+                  <tr><th>Fecha</th><th>Cosechero</th><th>Lote</th><th>Productos</th><th>Bultos</th><th>Total</th></tr>
                   </thead>
                   <tbody>
-                  {entries.map((e, i) => (
-                      <tr key={e.id || i}>
+                  {entries.map((e) => (
+                      <tr key={e.id}>
                         <td>{e.entryDate?.toString()}</td>
-                        <td>{getFarmerName(e)}</td>
-                        <td>{getProductName(e)}</td>
-                        <td>{getClassificationName(e)}</td>
+                        <td>{e.farmerName || '—'}</td>
                         <td><span className="tag tag-green">Lote {String(e.lotNumber).padStart(2,'0')}</span></td>
-                        <td><strong>{e.quantity}</strong></td>
-                        <td>${e.totalPrice?.toFixed ? e.totalPrice.toFixed(2) : e.totalPrice}</td>
+                        <td>
+                          {(e.items || []).map((it) => (
+                              <div key={it.movementId} style={{ padding: '2px 0' }}>
+                                <strong>{it.productName}</strong> · {it.classificationName}
+                                <span style={{ color: '#6b7280' }}> — {it.quantity} bultos × {money(it.pricePerUnit)}</span>
+                              </div>
+                          ))}
+                        </td>
+                        <td><strong>{e.totalQuantity}</strong></td>
+                        <td><strong>{money(e.totalPrice)}</strong></td>
                       </tr>
                   ))}
                   </tbody>
@@ -196,6 +190,7 @@ export default function Entries() {
                 </div>
                 <form onSubmit={handleSubmit}>
                   <div className="modal-body">
+                    {error && <div className="alert alert-danger">⚠ {error}</div>}
                     <div className="form-grid" style={{ marginBottom: 20 }}>
                       <div className="form-group">
                         <label>Cosechero *</label>
@@ -253,12 +248,15 @@ export default function Entries() {
                             </div>
                           </div>
                       ))}
+                      <div style={{ textAlign: 'right', fontSize: 13, color: '#374151', marginTop: 8 }}>
+                        Total: <strong>{totalBultos} bultos</strong> · <strong>{money(totalValor)}</strong>
+                      </div>
                     </div>
                   </div>
                   <div className="modal-footer">
                     <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancelar</button>
                     <button type="submit" className="btn btn-primary" disabled={saving}>
-                      {saving ? 'Guardando...' : `Registrar ${lines.length > 1 ? lines.length + ' líneas' : 'entrada'}`}
+                      {saving ? 'Guardando...' : 'Registrar entrada'}
                     </button>
                   </div>
                 </form>

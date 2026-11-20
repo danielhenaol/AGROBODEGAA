@@ -16,7 +16,7 @@ export default function Dashboard() {
         const [f, t, l, p] = await Promise.all([
           api.getFarmers(token),
           api.getTraders(token),
-          api.getLots(token),
+          api.getLots(token, true),
           api.getProducts(token),
         ])
         setStats({

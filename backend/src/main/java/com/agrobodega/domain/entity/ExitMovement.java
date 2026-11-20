@@ -3,6 +3,7 @@ package com.agrobodega.domain.entity;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -32,6 +33,11 @@ public class ExitMovement {
 
     @Column(nullable = false)
     private LocalDate exitDate;
+
+    /** Todas las lineas de una misma salida comparten este identificador. Nulo en registros antiguos. */
+    private UUID exitGroupId;
+
+    private LocalDateTime createdAt;
 
     public ExitMovement() {}
 
@@ -63,6 +69,12 @@ public class ExitMovement {
 
     public BigDecimal getTotalPrice() { return totalPrice; }
     public void setTotalPrice(BigDecimal totalPrice) { this.totalPrice = totalPrice; }
+
+    public UUID getExitGroupId() { return exitGroupId; }
+    public void setExitGroupId(UUID exitGroupId) { this.exitGroupId = exitGroupId; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public LocalDate getExitDate() { return exitDate; }
     public void setExitDate(LocalDate exitDate) { this.exitDate = exitDate; }

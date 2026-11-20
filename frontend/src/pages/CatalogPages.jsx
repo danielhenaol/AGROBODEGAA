@@ -112,7 +112,7 @@ export function Lots() {
       columns={[
         { key: 'id', label: 'ID', render: r => r.id?.slice(0,8) + '...' },
         { key: 'entryDate', label: 'Fecha entrada' },
-        { key: 'quantity', label: 'Cantidad (kg)', render: r => r.quantity?.toFixed(2) },
+        { key: 'quantity', label: 'Bultos', render: r => Number(r.quantity) },
         { key: 'status', label: 'Estado', render: () => <span className="tag tag-green">Activo</span> },
       ]}
       EmptyIcon={LotsIcon}

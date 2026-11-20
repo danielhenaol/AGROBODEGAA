@@ -2,10 +2,12 @@ package com.agrobodega.application.service;
 
 import com.agrobodega.infrastructure.exception.BusinessException;
 
-import com.agrobodega.application.dto.request.EntryMovementRequestDTO;
-import com.agrobodega.application.dto.request.ExitMovementRequestDTO;
-import com.agrobodega.application.dto.response.EntryMovementResponseDTO;
-import com.agrobodega.application.dto.response.ExitMovementResponseDTO;
+import com.agrobodega.application.dto.request.EntryItemRequestDTO;
+import com.agrobodega.application.dto.request.EntryRequestDTO;
+import com.agrobodega.application.dto.request.ExitItemRequestDTO;
+import com.agrobodega.application.dto.request.ExitRequestDTO;
+import com.agrobodega.application.dto.response.EntryReceiptResponseDTO;
+import com.agrobodega.application.dto.response.ExitReceiptResponseDTO;
 import com.agrobodega.domain.entity.EntryCharge;
 import com.agrobodega.domain.entity.EntryMovement;
 import com.agrobodega.domain.entity.ExitCharge;
@@ -31,6 +33,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 @Service
 public class InventoryService {
@@ -76,139 +85,310 @@ public class InventoryService {
         this.inventoryStreamController = inventoryStreamController;
     }
 
+    /**
+     * Registra UNA entrada con todas sus lineas: un cosechero, un lote, una fecha y
+     * varios productos. Cada linea suma bultos a su lote; se envia un solo correo.
+     */
     @Transactional
-    public EntryMovementResponseDTO registerEntry(EntryMovementRequestDTO request) {
-        ProductBase productBase = productBaseRepository.findById(request.getProductBaseId())
-                .orElseThrow(() -> new BusinessException("PRODUCT_NOT_FOUND"));
-
-        ProductClassification classification = classificationRepository.findById(request.getClassificationId())
-                .orElseThrow(() -> new BusinessException("CLASSIFICATION_NOT_FOUND"));
-
+    public EntryReceiptResponseDTO registerEntry(EntryRequestDTO request) {
         Farmer farmer = farmerRepository.findById(request.getFarmerId())
                 .orElseThrow(() -> new BusinessException("FARMER_NOT_FOUND"));
+        String farmerName = farmer.getName() + " " + farmer.getLastName();
 
-        BigDecimal totalPrice = request.getQuantity()
-                .multiply(request.getPricePerUnit())
-                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal commissionRate = catalogService.getDecimal("ENTRY_COMMISSION_RATE");
+        UUID groupId = UUID.randomUUID();
+        LocalDateTime now = LocalDateTime.now();
 
-        EntryMovement entryMovement = new EntryMovement();
-        entryMovement.setFarmer(farmer);
-        entryMovement.setClassification(classification);
-        entryMovement.setLotNumber(request.getLotNumber());
-        entryMovement.setQuantity(request.getQuantity());
-        entryMovement.setPricePerUnit(request.getPricePerUnit());
-        entryMovement.setTotalPrice(totalPrice);
-        entryMovement.setEntryDate(request.getEntryDate());
-        entryMovement = entryMovementRepository.save(entryMovement);
+        List<EntryReceiptResponseDTO.Item> items = new ArrayList<>();
+        List<String> itemLines = new ArrayList<>();
+        BigDecimal totalQuantity = BigDecimal.ZERO;
+        BigDecimal totalPrice = BigDecimal.ZERO;
+        BigDecimal totalCommission = BigDecimal.ZERO;
 
-        BigDecimal commissionAmount = totalPrice
-                .multiply(catalogService.getDecimal("ENTRY_COMMISSION_RATE"))
-                .setScale(2, RoundingMode.HALF_UP);
+        for (EntryItemRequestDTO item : request.getItems()) {
+            ProductBase productBase = productBaseRepository.findById(item.getProductBaseId())
+                    .orElseThrow(() -> new BusinessException("PRODUCT_NOT_FOUND"));
+            ProductClassification classification = classificationRepository.findById(item.getClassificationId())
+                    .orElseThrow(() -> new BusinessException("CLASSIFICATION_NOT_FOUND"));
+            if (!classification.getProductBase().getId().equals(productBase.getId())) {
+                throw new BusinessException("CLASSIFICATION_MISMATCH");
+            }
 
-        EntryCharge entryCharge = new EntryCharge();
-        entryCharge.setEntryMovement(entryMovement);
-        entryCharge.setAmount(commissionAmount);
-        entryCharge.setChargeType(ChargeType.ENTRY_COMMISSION);
-        entryChargeRepository.save(entryCharge);
+            BigDecimal linePrice = item.getQuantity()
+                    .multiply(item.getPricePerUnit())
+                    .setScale(2, RoundingMode.HALF_UP);
+            BigDecimal lineCommission = linePrice.multiply(commissionRate).setScale(2, RoundingMode.HALF_UP);
 
-        EntryMovementResponseDTO response = new EntryMovementResponseDTO();
-        response.setEntryMovementId(entryMovement.getId());
-        response.setProductName(productBase.getName());
-        response.setClassificationName(classification.getName());
-        response.setFarmerName(farmer.getName() + " " + farmer.getLastName());
+            EntryMovement movement = new EntryMovement();
+            movement.setEntryGroupId(groupId);
+            movement.setCreatedAt(now);
+            movement.setFarmer(farmer);
+            movement.setClassification(classification);
+            movement.setLotNumber(request.getLotNumber());
+            movement.setQuantity(item.getQuantity());
+            movement.setPricePerUnit(item.getPricePerUnit());
+            movement.setTotalPrice(linePrice);
+            movement.setEntryDate(request.getEntryDate());
+            movement = entryMovementRepository.save(movement);
+
+            EntryCharge charge = new EntryCharge();
+            charge.setEntryMovement(movement);
+            charge.setAmount(lineCommission);
+            charge.setChargeType(ChargeType.ENTRY_COMMISSION);
+            entryChargeRepository.save(charge);
+
+            // Regla de negocio: toda entrada suma existencias (bultos) a su lote, o lo crea.
+            Lot lot = lotRepository
+                    .findByProductBaseIdAndClassificationIdAndFarmerIdAndLotNumber(
+                            productBase.getId(), classification.getId(), farmer.getId(), request.getLotNumber())
+                    .orElseGet(() -> {
+                        Lot nuevo = new Lot();
+                        nuevo.setProductBase(productBase);
+                        nuevo.setClassification(classification);
+                        nuevo.setFarmer(farmer);
+                        nuevo.setLotNumber(request.getLotNumber());
+                        nuevo.setQuantity(BigDecimal.ZERO);
+                        return nuevo;
+                    });
+            lot.setQuantity(lot.getQuantity().add(item.getQuantity()));
+            lot.setEntryDate(request.getEntryDate());
+            lotRepository.save(lot);
+
+            items.add(toItem(movement, productBase.getName(), classification.getName(), lineCommission));
+            itemLines.add(String.format("• %s · %s: %s bultos × $%s = $%s",
+                    productBase.getName(), classification.getName(),
+                    item.getQuantity().setScale(0, RoundingMode.HALF_UP).toPlainString(),
+                    item.getPricePerUnit().setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                    linePrice.toPlainString()));
+
+            totalQuantity = totalQuantity.add(item.getQuantity());
+            totalPrice = totalPrice.add(linePrice);
+            totalCommission = totalCommission.add(lineCommission);
+        }
+
+        EntryReceiptResponseDTO response = new EntryReceiptResponseDTO();
+        response.setId(groupId);
+        response.setFarmerName(farmerName);
         response.setLotNumber(request.getLotNumber());
-        response.setQuantity(request.getQuantity());
-        response.setPricePerUnit(request.getPricePerUnit());
-        response.setTotalPrice(totalPrice);
-        response.setCommissionAmount(commissionAmount);
         response.setEntryDate(request.getEntryDate());
+        response.setItems(items);
+        response.setTotalQuantity(totalQuantity);
+        response.setTotalPrice(totalPrice);
+        response.setTotalCommission(totalCommission);
 
         notificationService.sendEntryNotification(
-                farmer.getName() + " " + farmer.getLastName(),
-                productBase.getName(),
-                classification.getName(),
-                request.getLotNumber(),
-                request.getQuantity().doubleValue(),
-                totalPrice.doubleValue()
-        );
+                farmerName, request.getLotNumber(), request.getEntryDate().toString(),
+                itemLines, totalQuantity.doubleValue(), totalPrice.doubleValue());
 
         inventoryStreamController.broadcastInventoryUpdate(
-                "Nueva entrada: " + productBase.getName() +
-                        " | Cosechero: " + farmer.getName() +
-                        " | Cantidad: " + request.getQuantity() +
-                        " | Total: $" + totalPrice
-        );
+                "Nueva entrada | Cosechero: " + farmerName +
+                        " | Productos: " + items.size() +
+                        " | Bultos: " + totalQuantity.toPlainString() +
+                        " | Total: $" + totalPrice);
 
         return response;
     }
 
-    @Transactional
-    public ExitMovementResponseDTO registerExit(ExitMovementRequestDTO request) {
-        Lot lot = lotRepository.findById(request.getLotId())
-                .orElseThrow(() -> new BusinessException("LOT_NOT_FOUND"));
+    /** Lista las entradas agrupadas (mas recientes primero). Los registros antiguos sin grupo salen sueltos. */
+    @Transactional(readOnly = true)
+    public List<EntryReceiptResponseDTO> getEntries() {
+        List<EntryMovement> all = new ArrayList<>(entryMovementRepository.findAll());
+        all.sort(Comparator
+                .comparing(EntryMovement::getEntryDate, Comparator.reverseOrder())
+                .thenComparing(EntryMovement::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())));
 
-        if (lot.getQuantity().compareTo(request.getQuantity()) < 0) {
-            throw new BusinessException("INSUFFICIENT_STOCK");
+        Map<UUID, List<EntryMovement>> groups = new LinkedHashMap<>();
+        for (EntryMovement m : all) {
+            UUID key = m.getEntryGroupId() != null ? m.getEntryGroupId() : m.getId();
+            groups.computeIfAbsent(key, k -> new ArrayList<>()).add(m);
         }
 
+        List<EntryReceiptResponseDTO> result = new ArrayList<>();
+        groups.forEach((groupId, lines) -> {
+            EntryMovement first = lines.get(0);
+            EntryReceiptResponseDTO dto = new EntryReceiptResponseDTO();
+            dto.setId(groupId);
+            dto.setFarmerName(first.getFarmer().getName() + " " + first.getFarmer().getLastName());
+            dto.setLotNumber(first.getLotNumber());
+            dto.setEntryDate(first.getEntryDate());
+
+            List<EntryReceiptResponseDTO.Item> items = new ArrayList<>();
+            BigDecimal quantity = BigDecimal.ZERO;
+            BigDecimal price = BigDecimal.ZERO;
+            for (EntryMovement m : lines) {
+                items.add(toItem(m,
+                        m.getClassification().getProductBase().getName(),
+                        m.getClassification().getName(), null));
+                quantity = quantity.add(m.getQuantity());
+                price = price.add(m.getTotalPrice());
+            }
+            dto.setItems(items);
+            dto.setTotalQuantity(quantity);
+            dto.setTotalPrice(price);
+            result.add(dto);
+        });
+        return result;
+    }
+
+    private EntryReceiptResponseDTO.Item toItem(EntryMovement m, String product, String classification,
+                                                BigDecimal commission) {
+        EntryReceiptResponseDTO.Item item = new EntryReceiptResponseDTO.Item();
+        item.setMovementId(m.getId());
+        item.setProductName(product);
+        item.setClassificationName(classification);
+        item.setQuantity(m.getQuantity());
+        item.setPricePerUnit(m.getPricePerUnit());
+        item.setTotalPrice(m.getTotalPrice());
+        item.setCommissionAmount(commission);
+        return item;
+    }
+
+    /**
+     * Registra UNA salida con todas sus lineas: un negociante, una fecha y varios lotes.
+     * Cada linea descuenta bultos de su lote (solo si hay existencias); se envia un solo correo.
+     */
+    @Transactional
+    public ExitReceiptResponseDTO registerExit(ExitRequestDTO request) {
         Trader trader = traderRepository.findById(request.getTraderId())
                 .orElseThrow(() -> new BusinessException("TRADER_NOT_FOUND"));
+        String traderName = trader.getName() + " " + trader.getLastName();
 
-        BigDecimal totalPrice = request.getQuantity()
-                .multiply(request.getPricePerUnit())
-                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal commissionRate = catalogService.getDecimal("EXIT_COMMISSION_RATE");
+        UUID groupId = UUID.randomUUID();
+        LocalDateTime now = LocalDateTime.now();
 
-        ExitMovement exitMovement = new ExitMovement();
-        exitMovement.setLot(lot);
-        exitMovement.setTrader(trader);
-        exitMovement.setQuantity(request.getQuantity());
-        exitMovement.setPricePerUnit(request.getPricePerUnit());
-        exitMovement.setTotalPrice(totalPrice);
-        exitMovement.setExitDate(request.getExitDate());
-        exitMovement = exitMovementRepository.save(exitMovement);
+        List<ExitReceiptResponseDTO.Item> items = new ArrayList<>();
+        List<String> itemLines = new ArrayList<>();
+        BigDecimal totalQuantity = BigDecimal.ZERO;
+        BigDecimal totalPrice = BigDecimal.ZERO;
+        BigDecimal totalCommission = BigDecimal.ZERO;
 
-        lot.setQuantity(lot.getQuantity().subtract(request.getQuantity()));
-        lotRepository.save(lot);
+        for (ExitItemRequestDTO item : request.getItems()) {
+            Lot lot = lotRepository.findByIdForUpdate(item.getLotId())
+                    .orElseThrow(() -> new BusinessException("LOT_NOT_FOUND"));
 
-        BigDecimal commissionAmount = totalPrice
-                .multiply(catalogService.getDecimal("EXIT_COMMISSION_RATE"))
-                .setScale(2, RoundingMode.HALF_UP);
+            // Regla de negocio: solo puede salir lo que hay disponible en bodega.
+            if (lot.getQuantity().compareTo(item.getQuantity()) < 0) {
+                throw new BusinessException("INSUFFICIENT_STOCK");
+            }
 
-        ExitCharge exitCharge = new ExitCharge();
-        exitCharge.setExitMovement(exitMovement);
-        exitCharge.setAmount(commissionAmount);
-        exitCharge.setChargeType(ChargeType.EXIT_COMMISSION);
-        exitChargeRepository.save(exitCharge);
+            BigDecimal linePrice = item.getQuantity()
+                    .multiply(item.getPricePerUnit())
+                    .setScale(2, RoundingMode.HALF_UP);
+            BigDecimal lineCommission = linePrice.multiply(commissionRate).setScale(2, RoundingMode.HALF_UP);
 
-        ExitMovementResponseDTO response = new ExitMovementResponseDTO();
-        response.setExitMovementId(exitMovement.getId());
-        response.setLotId(lot.getId());
-        response.setProductName(lot.getProductBase().getName());
-        response.setClassificationName(lot.getClassification().getName());
-        response.setTraderName(trader.getName() + " " + trader.getLastName());
-        response.setQuantity(request.getQuantity());
-        response.setPricePerUnit(request.getPricePerUnit());
-        response.setTotalPrice(totalPrice);
-        response.setCommissionAmount(commissionAmount);
-        response.setRemainingLotQuantity(lot.getQuantity());
+            ExitMovement movement = new ExitMovement();
+            movement.setExitGroupId(groupId);
+            movement.setCreatedAt(now);
+            movement.setLot(lot);
+            movement.setTrader(trader);
+            movement.setQuantity(item.getQuantity());
+            movement.setPricePerUnit(item.getPricePerUnit());
+            movement.setTotalPrice(linePrice);
+            movement.setExitDate(request.getExitDate());
+            movement = exitMovementRepository.save(movement);
+
+            lot.setQuantity(lot.getQuantity().subtract(item.getQuantity()));
+            lotRepository.save(lot);
+
+            ExitCharge charge = new ExitCharge();
+            charge.setExitMovement(movement);
+            charge.setAmount(lineCommission);
+            charge.setChargeType(ChargeType.EXIT_COMMISSION);
+            exitChargeRepository.save(charge);
+
+            items.add(toExitItem(movement, lineCommission));
+            itemLines.add(String.format("• %s · %s (%s, Lote %02d): %s bultos × $%s = $%s — quedan %s en el lote",
+                    lot.getProductBase().getName(), lot.getClassification().getName(),
+                    farmerName(lot), lot.getLotNumber() == null ? 0 : lot.getLotNumber(),
+                    item.getQuantity().setScale(0, RoundingMode.HALF_UP).toPlainString(),
+                    item.getPricePerUnit().setScale(2, RoundingMode.HALF_UP).toPlainString(),
+                    linePrice.toPlainString(),
+                    lot.getQuantity().setScale(0, RoundingMode.HALF_UP).toPlainString()));
+
+            totalQuantity = totalQuantity.add(item.getQuantity());
+            totalPrice = totalPrice.add(linePrice);
+            totalCommission = totalCommission.add(lineCommission);
+        }
+
+        ExitReceiptResponseDTO response = new ExitReceiptResponseDTO();
+        response.setId(groupId);
+        response.setTraderName(traderName);
         response.setExitDate(request.getExitDate());
+        response.setItems(items);
+        response.setTotalQuantity(totalQuantity);
+        response.setTotalPrice(totalPrice);
+        response.setTotalCommission(totalCommission);
 
         notificationService.sendExitNotification(
-                trader.getName() + " " + trader.getLastName(),
-                lot.getProductBase().getName(),
-                lot.getClassification().getName(),
-                request.getQuantity().doubleValue(),
-                totalPrice.doubleValue(),
-                lot.getQuantity().doubleValue()
-        );
+                traderName, request.getExitDate().toString(), itemLines,
+                totalQuantity.doubleValue(), totalPrice.doubleValue());
 
         inventoryStreamController.broadcastInventoryUpdate(
-                "Nueva salida: " + lot.getProductBase().getName() +
-                        " | Negociante: " + trader.getName() +
-                        " | Cantidad: " + request.getQuantity() +
-                        " | Total: $" + totalPrice
-        );
+                "Nueva salida | Negociante: " + traderName +
+                        " | Productos: " + items.size() +
+                        " | Bultos: " + totalQuantity.toPlainString() +
+                        " | Total: $" + totalPrice);
 
         return response;
+    }
+
+    /** Lista las salidas agrupadas (mas recientes primero). */
+    @Transactional(readOnly = true)
+    public List<ExitReceiptResponseDTO> getExits() {
+        List<ExitMovement> all = new ArrayList<>(exitMovementRepository.findAll());
+        all.sort(Comparator
+                .comparing(ExitMovement::getExitDate, Comparator.reverseOrder())
+                .thenComparing(ExitMovement::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())));
+
+        Map<UUID, List<ExitMovement>> groups = new LinkedHashMap<>();
+        for (ExitMovement m : all) {
+            UUID key = m.getExitGroupId() != null ? m.getExitGroupId() : m.getId();
+            groups.computeIfAbsent(key, k -> new ArrayList<>()).add(m);
+        }
+
+        List<ExitReceiptResponseDTO> result = new ArrayList<>();
+        groups.forEach((groupId, lines) -> {
+            ExitMovement first = lines.get(0);
+            ExitReceiptResponseDTO dto = new ExitReceiptResponseDTO();
+            dto.setId(groupId);
+            dto.setTraderName(first.getTrader().getName() + " " + first.getTrader().getLastName());
+            dto.setExitDate(first.getExitDate());
+
+            List<ExitReceiptResponseDTO.Item> items = new ArrayList<>();
+            BigDecimal quantity = BigDecimal.ZERO;
+            BigDecimal price = BigDecimal.ZERO;
+            for (ExitMovement m : lines) {
+                items.add(toExitItem(m, null));
+                quantity = quantity.add(m.getQuantity());
+                price = price.add(m.getTotalPrice());
+            }
+            dto.setItems(items);
+            dto.setTotalQuantity(quantity);
+            dto.setTotalPrice(price);
+            result.add(dto);
+        });
+        return result;
+    }
+
+    private ExitReceiptResponseDTO.Item toExitItem(ExitMovement m, BigDecimal commission) {
+        Lot lot = m.getLot();
+        ExitReceiptResponseDTO.Item item = new ExitReceiptResponseDTO.Item();
+        item.setMovementId(m.getId());
+        item.setLotId(lot.getId());
+        item.setLotNumber(lot.getLotNumber());
+        item.setProductName(lot.getProductBase().getName());
+        item.setClassificationName(lot.getClassification().getName());
+        item.setFarmerName(farmerName(lot));
+        item.setQuantity(m.getQuantity());
+        item.setPricePerUnit(m.getPricePerUnit());
+        item.setTotalPrice(m.getTotalPrice());
+        item.setCommissionAmount(commission);
+        return item;
+    }
+
+    private String farmerName(Lot lot) {
+        return lot.getFarmer() == null ? "Sin cosechero"
+                : lot.getFarmer().getName() + " " + lot.getFarmer().getLastName();
     }
 }

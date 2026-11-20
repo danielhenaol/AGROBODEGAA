@@ -8,6 +8,7 @@ import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -37,30 +38,27 @@ public class NotificationService {
         this.client = RestClient.builder().baseUrl(baseUrl).requestFactory(factory).build();
     }
 
-    /** Avisa al dueño de la bodega que se registro una entrada. */
-    public void sendEntryNotification(String farmerName, String productName,
-                                      String classification, int lotNumber,
-                                      double quantity, double totalPrice) {
+    /** Avisa al dueño de la bodega que se registro UNA entrada (con todas sus lineas en un solo correo). */
+    public void sendEntryNotification(String farmerName, int lotNumber, String entryDate,
+                                      List<String> itemLines, double totalQuantity, double totalPrice) {
         notifyOwner("ENTRY_REGISTERED", Map.of(
                 "farmerName", farmerName,
-                "productName", productName,
-                "classification", classification,
                 "lotNumber", String.format("%02d", lotNumber),
-                "quantity", String.format("%.0f", quantity),
+                "entryDate", entryDate,
+                "items", String.join("\n", itemLines),
+                "totalQuantity", String.format("%.0f", totalQuantity),
                 "totalPrice", String.format("%.2f", totalPrice)));
     }
 
-    /** Avisa al dueño de la bodega que se registro una salida. */
-    public void sendExitNotification(String traderName, String productName,
-                                     String classification, double quantity,
-                                     double totalPrice, double remainingQuantity) {
+    /** Avisa al dueño de la bodega que se registro UNA salida (con todas sus lineas en un solo correo). */
+    public void sendExitNotification(String traderName, String exitDate, List<String> itemLines,
+                                     double totalQuantity, double totalPrice) {
         notifyOwner("EXIT_REGISTERED", Map.of(
                 "traderName", traderName,
-                "productName", productName,
-                "classification", classification,
-                "quantity", String.format("%.0f", quantity),
-                "totalPrice", String.format("%.2f", totalPrice),
-                "remainingQuantity", String.format("%.0f", remainingQuantity)));
+                "exitDate", exitDate,
+                "items", String.join("\n", itemLines),
+                "totalQuantity", String.format("%.0f", totalQuantity),
+                "totalPrice", String.format("%.2f", totalPrice)));
     }
 
     private void notifyOwner(String eventCode, Map<String, String> variables) {

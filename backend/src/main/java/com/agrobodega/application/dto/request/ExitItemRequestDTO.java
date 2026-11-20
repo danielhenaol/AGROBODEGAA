@@ -1,44 +1,34 @@
 package com.agrobodega.application.dto.request;
 
+import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.UUID;
 
-public class ExitMovementRequestDTO {
+/** Una linea de la salida: de que lote sale, cuantos bultos y a que precio por bulto. */
+public class ExitItemRequestDTO {
 
-    @NotNull
+    @NotNull(message = "El lote es obligatorio")
     private UUID lotId;
 
-    @NotNull
-    private UUID traderId;
-
-    @NotNull
-    @Positive
+    @NotNull(message = "Los bultos son obligatorios")
+    @Positive(message = "Los bultos deben ser mayores a 0")
+    @Digits(integer = 9, fraction = 0, message = "Los bultos deben ser un número entero")
     private BigDecimal quantity;
 
-    @NotNull
-    @Positive
+    @NotNull(message = "El precio por bulto es obligatorio")
+    @Positive(message = "El precio por bulto debe ser mayor a 0")
     private BigDecimal pricePerUnit;
 
-    @NotNull
-    private LocalDate exitDate;
-
-    public ExitMovementRequestDTO() {}
+    public ExitItemRequestDTO() {}
 
     public UUID getLotId() { return lotId; }
     public void setLotId(UUID lotId) { this.lotId = lotId; }
-
-    public UUID getTraderId() { return traderId; }
-    public void setTraderId(UUID traderId) { this.traderId = traderId; }
 
     public BigDecimal getQuantity() { return quantity; }
     public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
 
     public BigDecimal getPricePerUnit() { return pricePerUnit; }
     public void setPricePerUnit(BigDecimal pricePerUnit) { this.pricePerUnit = pricePerUnit; }
-
-    public LocalDate getExitDate() { return exitDate; }
-    public void setExitDate(LocalDate exitDate) { this.exitDate = exitDate; }
 }

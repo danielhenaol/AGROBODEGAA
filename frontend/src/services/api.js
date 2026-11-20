@@ -30,10 +30,12 @@ export const api = {
       createApiClient(token).get(`/api/v1/products/${productId}/classifications`),
   deleteClassification: (token, productId, classId) =>
       createApiClient(token).delete(`/api/v1/products/${productId}/classifications/${classId}`),
-  getLots: (token) => createApiClient(token).get('/api/v1/lots'),
-  createLot: (token, data) => createApiClient(token).post('/api/v1/lots', data),
+  // Lotes = inventario en bodega. Se alimentan solo con entradas; available=true => solo con existencias
+  getLots: (token, available = false) =>
+      createApiClient(token).get('/api/v1/lots', { params: { available } }),
   getEntries: (token) => createApiClient(token).get('/api/v1/entries'),
   createEntry: (token, data) => createApiClient(token).post('/api/v1/entries', data),
+  getExits: (token) => createApiClient(token).get('/api/v1/exits'),
   createExit: (token, data) => createApiClient(token).post('/api/v1/exits', data),
 }
 

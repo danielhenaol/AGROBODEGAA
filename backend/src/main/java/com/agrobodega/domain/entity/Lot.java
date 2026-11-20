@@ -31,6 +31,9 @@ public class Lot {
     @Column(nullable = false)
     private LocalDate entryDate;
 
+    /** Numero de lote asignado al registrar la entrada (1 a 10). */
+    private Integer lotNumber;
+
     public Lot() {}
 
     public Lot(UUID id, ProductBase productBase, ProductClassification classification,
@@ -57,6 +60,9 @@ public class Lot {
 
     public BigDecimal getQuantity() { return quantity; }
     public void setQuantity(BigDecimal quantity) { this.quantity = quantity; }
+
+    public Integer getLotNumber() { return lotNumber; }
+    public void setLotNumber(Integer lotNumber) { this.lotNumber = lotNumber; }
 
     public LocalDate getEntryDate() { return entryDate; }
     public void setEntryDate(LocalDate entryDate) { this.entryDate = entryDate; }
