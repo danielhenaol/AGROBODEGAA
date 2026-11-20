@@ -193,6 +193,15 @@ public class InventoryService {
         response.setRemainingLotQuantity(lot.getQuantity());
         response.setExitDate(request.getExitDate());
 
+        notificationService.sendExitNotification(
+                trader.getName() + " " + trader.getLastName(),
+                lot.getProductBase().getName(),
+                lot.getClassification().getName(),
+                request.getQuantity().doubleValue(),
+                totalPrice.doubleValue(),
+                lot.getQuantity().doubleValue()
+        );
+
         inventoryStreamController.broadcastInventoryUpdate(
                 "Nueva salida: " + lot.getProductBase().getName() +
                         " | Negociante: " + trader.getName() +

@@ -12,8 +12,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * Pide al servicio de notificaciones (notification-service) que envie los
- * correos. La plantilla y el envio los resuelve ese servicio; aqui solo se
+ * Pide al servicio de notificaciones (notification-service) que envie al
+ * dueño de la bodega el correo de cada entrada y salida. La plantilla y el envio los resuelve ese servicio; aqui solo se
  * indica el evento, el destinatario y los datos variables.
  */
 @Service
@@ -37,24 +37,42 @@ public class NotificationService {
         this.client = RestClient.builder().baseUrl(baseUrl).requestFactory(factory).build();
     }
 
+    /** Avisa al dueño de la bodega que se registro una entrada. */
     public void sendEntryNotification(String farmerName, String productName,
                                       String classification, int lotNumber,
                                       double quantity, double totalPrice) {
+        notifyOwner("ENTRY_REGISTERED", Map.of(
+                "farmerName", farmerName,
+                "productName", productName,
+                "classification", classification,
+                "lotNumber", String.format("%02d", lotNumber),
+                "quantity", String.format("%.0f", quantity),
+                "totalPrice", String.format("%.2f", totalPrice)));
+    }
+
+    /** Avisa al dueño de la bodega que se registro una salida. */
+    public void sendExitNotification(String traderName, String productName,
+                                     String classification, double quantity,
+                                     double totalPrice, double remainingQuantity) {
+        notifyOwner("EXIT_REGISTERED", Map.of(
+                "traderName", traderName,
+                "productName", productName,
+                "classification", classification,
+                "quantity", String.format("%.0f", quantity),
+                "totalPrice", String.format("%.2f", totalPrice),
+                "remainingQuantity", String.format("%.0f", remainingQuantity)));
+    }
+
+    private void notifyOwner(String eventCode, Map<String, String> variables) {
         Map<String, Object> payload;
         try {
             payload = Map.of(
-                    "eventCode", "ENTRY_REGISTERED",
+                    "eventCode", eventCode,
                     "channel", "EMAIL",
-                    "to", catalogService.getParameter("NOTIFICATION_DEFAULT_RECIPIENT"),
-                    "variables", Map.of(
-                            "farmerName", farmerName,
-                            "productName", productName,
-                            "classification", classification,
-                            "lotNumber", String.format("%02d", lotNumber),
-                            "quantity", String.format("%.0f", quantity),
-                            "totalPrice", String.format("%.2f", totalPrice)));
+                    "to", catalogService.getParameter("OWNER_EMAIL"),
+                    "variables", variables);
         } catch (Exception e) {
-            log.error("No se pudo preparar la notificacion ENTRY_REGISTERED: {}", e.getMessage());
+            log.error("No se pudo preparar la notificacion {}: {}", eventCode, e.getMessage());
             return;
         }
 
@@ -68,9 +86,9 @@ public class NotificationService {
                         .body(payload)
                         .retrieve()
                         .toBodilessEntity();
-                log.info("Notificacion ENTRY_REGISTERED solicitada");
+                log.info("Notificacion {} solicitada", eventCode);
             } catch (Exception e) {
-                log.error("Fallo al solicitar la notificacion ENTRY_REGISTERED: {}", e.getMessage());
+                log.error("Fallo al solicitar la notificacion {}: {}", eventCode, e.getMessage());
             }
         });
     }
