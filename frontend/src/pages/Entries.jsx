@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api, errorMessage } from '../services/api'
 import { useToken } from '../services/useToken'
+import { nowLocal, toInstant, fmtDateTime } from '../utils/format'
 
 const emptyLine = { productBaseId: '', classificationId: '', quantity: '', pricePerUnit: '' }
 
@@ -19,7 +20,7 @@ export default function Entries() {
   const [header, setHeader] = useState({
     farmerId: '',
     lotNumber: '',
-    entryDate: new Date().toISOString().split('T')[0]
+    entryDate: nowLocal()
   })
   const [lines, setLines] = useState([{ ...emptyLine }])
 
@@ -88,7 +89,7 @@ export default function Entries() {
       await api.createEntry(token, {
         farmerId: header.farmerId,
         lotNumber: parseInt(header.lotNumber),
-        entryDate: header.entryDate,
+        occurredAt: toInstant(header.entryDate),
         items: lines.map(line => ({
           productBaseId: line.productBaseId,
           classificationId: line.classificationId,
@@ -98,7 +99,7 @@ export default function Entries() {
       })
       setSuccess(true)
       setShowModal(false)
-      setHeader({ farmerId: '', lotNumber: '', entryDate: new Date().toISOString().split('T')[0] })
+      setHeader({ farmerId: '', lotNumber: '', entryDate: nowLocal() })
       setLines([{ ...emptyLine }])
       setTimeout(() => setSuccess(false), 3000)
       setTimeout(() => loadData(), 800)
@@ -136,7 +137,7 @@ export default function Entries() {
             <div className="alert alert-success">✓ Entrada registrada exitosamente</div>
         )}
 
-        {error && <div className="alert alert-danger" onClick={() => setError('')}>⚠ {error}</div>}
+        {error && <div className="alert alert-error" onClick={() => setError('')}>⚠ {error}</div>}
 
       <div className="card">
           {loading ? (
@@ -155,12 +156,12 @@ export default function Entries() {
               <div className="table-container">
                 <table>
                   <thead>
-                  <tr><th>Fecha</th><th>Cosechero</th><th>Lote</th><th>Productos</th><th>Bultos</th><th>Total</th></tr>
+                  <tr><th>Fecha y hora</th><th>Cosechero</th><th>Lote</th><th>Productos</th><th>Bultos</th><th>Total</th></tr>
                   </thead>
                   <tbody>
                   {entries.map((e) => (
                       <tr key={e.id}>
-                        <td>{e.entryDate?.toString()}</td>
+                        <td>{fmtDateTime(e.occurredAt, e.entryDate)}</td>
                         <td>{e.farmerName || '—'}</td>
                         <td><span className="tag tag-green">Lote {String(e.lotNumber).padStart(2,'0')}</span></td>
                         <td>
@@ -190,7 +191,7 @@ export default function Entries() {
                 </div>
                 <form onSubmit={handleSubmit}>
                   <div className="modal-body">
-                    {error && <div className="alert alert-danger">⚠ {error}</div>}
+                    {error && <div className="alert alert-error">⚠ {error}</div>}
                     <div className="form-grid" style={{ marginBottom: 20 }}>
                       <div className="form-group">
                         <label>Cosechero *</label>
@@ -207,8 +208,8 @@ export default function Entries() {
                         </select>
                       </div>
                       <div className="form-group full">
-                        <label>Fecha de entrada *</label>
-                        <input type="date" value={header.entryDate} onChange={e => setHeader({...header, entryDate: e.target.value})} required />
+                        <label>Fecha y hora de entrada *</label>
+                        <input type="datetime-local" value={header.entryDate} onChange={e => setHeader({...header, entryDate: e.target.value})} required />
                       </div>
                     </div>
                     <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: 16 }}>

@@ -2,6 +2,7 @@ package com.agrobodega.domain.entity;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -42,6 +43,9 @@ public class EntryMovement {
 
     private LocalDateTime createdAt;
 
+    /** Momento exacto (fecha y hora) del movimiento. Nulo en registros antiguos, que solo tienen fecha. */
+    private Instant occurredAt;
+
     public EntryMovement() {}
 
     public UUID getId() { return id; }
@@ -70,6 +74,9 @@ public class EntryMovement {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public Instant getOccurredAt() { return occurredAt; }
+    public void setOccurredAt(Instant occurredAt) { this.occurredAt = occurredAt; }
 
     public LocalDate getEntryDate() { return entryDate; }
     public void setEntryDate(LocalDate entryDate) { this.entryDate = entryDate; }

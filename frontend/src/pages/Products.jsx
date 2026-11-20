@@ -88,7 +88,7 @@ export default function Products() {
       </div>
 
       {success && <div className="alert alert-success">✓ {success}</div>}
-      {error && <div className="alert alert-danger" onClick={() => setError('')}>⚠ {error}</div>}
+      {error && <div className="alert alert-error" onClick={() => setError('')}>⚠ {error}</div>}
 
       <div className="card" style={{ marginBottom: 16 }}>
         <div className="card-body">

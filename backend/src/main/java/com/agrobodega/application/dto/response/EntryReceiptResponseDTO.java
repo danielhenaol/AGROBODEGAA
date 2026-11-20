@@ -1,6 +1,7 @@
 package com.agrobodega.application.dto.response;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -12,6 +13,7 @@ public class EntryReceiptResponseDTO {
     private String farmerName;
     private Integer lotNumber;
     private LocalDate entryDate;
+    private Instant occurredAt;
     private List<Item> items;
     private BigDecimal totalQuantity;
     private BigDecimal totalPrice;
@@ -48,6 +50,8 @@ public class EntryReceiptResponseDTO {
     public void setFarmerName(String farmerName) { this.farmerName = farmerName; }
     public Integer getLotNumber() { return lotNumber; }
     public void setLotNumber(Integer lotNumber) { this.lotNumber = lotNumber; }
+    public Instant getOccurredAt() { return occurredAt; }
+    public void setOccurredAt(Instant occurredAt) { this.occurredAt = occurredAt; }
     public LocalDate getEntryDate() { return entryDate; }
     public void setEntryDate(LocalDate entryDate) { this.entryDate = entryDate; }
     public List<Item> getItems() { return items; }

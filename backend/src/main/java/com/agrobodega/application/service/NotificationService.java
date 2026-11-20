@@ -61,6 +61,17 @@ public class NotificationService {
                 "totalPrice", String.format("%.2f", totalPrice)));
     }
 
+    /** Avisa al dueño de la bodega que se registro un gasto. */
+    public void sendExpenseNotification(String category, String description, double amount,
+                                        String occurredAt, String registeredBy) {
+        notifyOwner("EXPENSE_REGISTERED", Map.of(
+                "category", category,
+                "description", description,
+                "amount", String.format("%.2f", amount),
+                "occurredAt", occurredAt,
+                "registeredBy", registeredBy));
+    }
+
     private void notifyOwner(String eventCode, Map<String, String> variables) {
         Map<String, Object> payload;
         try {

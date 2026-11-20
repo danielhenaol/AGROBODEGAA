@@ -2,6 +2,7 @@ package com.agrobodega.domain.entity;
 
 import jakarta.persistence.*;
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -39,6 +40,9 @@ public class ExitMovement {
 
     private LocalDateTime createdAt;
 
+    /** Momento exacto (fecha y hora) del movimiento. Nulo en registros antiguos, que solo tienen fecha. */
+    private Instant occurredAt;
+
     public ExitMovement() {}
 
     public ExitMovement(UUID id, Lot lot, Trader trader, BigDecimal quantity,
@@ -75,6 +79,9 @@ public class ExitMovement {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public Instant getOccurredAt() { return occurredAt; }
+    public void setOccurredAt(Instant occurredAt) { this.occurredAt = occurredAt; }
 
     public LocalDate getExitDate() { return exitDate; }
     public void setExitDate(LocalDate exitDate) { this.exitDate = exitDate; }

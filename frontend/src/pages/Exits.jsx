@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api, errorMessage } from '../services/api'
 import { useToken } from '../services/useToken'
+import { nowLocal, toInstant, fmtDateTime } from '../utils/format'
 
-const today = () => new Date().toISOString().split('T')[0]
 const emptyLine = { lotId: '', quantity: '', pricePerUnit: '' }
 
 const lotLabel = (l) =>
@@ -24,7 +24,7 @@ export default function Exits() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [success, setSuccess] = useState(false)
-  const [header, setHeader] = useState({ traderId: '', exitDate: today() })
+  const [header, setHeader] = useState({ traderId: '', exitDate: nowLocal() })
   const [lines, setLines] = useState([{ ...emptyLine }])
 
   const load = useCallback(async () => {
@@ -76,7 +76,7 @@ export default function Exits() {
       const token = await getToken()
       await api.createExit(token, {
         traderId: header.traderId,
-        exitDate: header.exitDate,
+        occurredAt: toInstant(header.exitDate),
         items: lines.map((l) => ({
           lotId: l.lotId,
           quantity: parseInt(l.quantity),
@@ -85,7 +85,7 @@ export default function Exits() {
       })
       setSuccess(true)
       setShowModal(false)
-      setHeader({ traderId: '', exitDate: today() })
+      setHeader({ traderId: '', exitDate: nowLocal() })
       setLines([{ ...emptyLine }])
       await load()
       setTimeout(() => setSuccess(false), 3000)
@@ -113,7 +113,7 @@ export default function Exits() {
       </div>
 
       {success && <div className="alert alert-success">✓ Salida registrada exitosamente</div>}
-      {error && !showModal && <div className="alert alert-danger" onClick={() => setError('')}>⚠ {error}</div>}
+      {error && !showModal && <div className="alert alert-error" onClick={() => setError('')}>⚠ {error}</div>}
 
       <div className="card">
         {loading ? (
@@ -132,12 +132,12 @@ export default function Exits() {
           <div className="table-container">
             <table>
               <thead>
-                <tr><th>Fecha</th><th>Negociante</th><th>Productos</th><th>Bultos</th><th>Total</th></tr>
+                <tr><th>Fecha y hora</th><th>Negociante</th><th>Productos</th><th>Bultos</th><th>Total</th></tr>
               </thead>
               <tbody>
                 {exits.map((x) => (
                   <tr key={x.id}>
-                    <td>{x.exitDate?.toString()}</td>
+                    <td>{fmtDateTime(x.occurredAt, x.exitDate)}</td>
                     <td>{x.traderName || '—'}</td>
                     <td>
                       {(x.items || []).map((it) => (
@@ -169,7 +169,7 @@ export default function Exits() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="modal-body">
-                {error && <div className="alert alert-danger">⚠ {error}</div>}
+                {error && <div className="alert alert-error">⚠ {error}</div>}
                 <div className="form-grid" style={{ marginBottom: 20 }}>
                   <div className="form-group">
                     <label>Negociante *</label>
@@ -179,8 +179,8 @@ export default function Exits() {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Fecha de salida *</label>
-                    <input type="date" value={header.exitDate} onChange={(e) => setHeader({ ...header, exitDate: e.target.value })} required />
+                    <label>Fecha y hora de salida *</label>
+                    <input type="datetime-local" value={header.exitDate} onChange={(e) => setHeader({ ...header, exitDate: e.target.value })} required />
                   </div>
                 </div>
 
@@ -192,7 +192,7 @@ export default function Exits() {
                   </div>
 
                   {lots.length === 0 && (
-                    <div className="alert alert-danger">No hay existencias en bodega. Registra primero una entrada.</div>
+                    <div className="alert alert-error">No hay existencias en bodega. Registra primero una entrada.</div>
                   )}
 
                   {lines.map((line, index) => {

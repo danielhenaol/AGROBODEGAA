@@ -57,7 +57,7 @@ export default function LoginPage() {
           <p>Inicia sesión para acceder al sistema de gestión agrícola.</p>
 
           {error && (
-            <div className="alert alert-danger">
+            <div className="alert alert-error">
               ⚠ {error.message || 'No se pudo iniciar sesión.'}
             </div>
           )}

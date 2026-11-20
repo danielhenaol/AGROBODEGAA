@@ -33,6 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -56,6 +58,7 @@ public class InventoryService {
     private final NotificationService notificationService;
     private final CatalogService catalogService;
     private final InventoryStreamController inventoryStreamController;
+    private final TimeService timeService;
 
     public InventoryService(
             ProductBaseRepository productBaseRepository,
@@ -69,7 +72,8 @@ public class InventoryService {
             ExitChargeRepository exitChargeRepository,
             NotificationService notificationService,
             CatalogService catalogService,
-            InventoryStreamController inventoryStreamController) {
+            InventoryStreamController inventoryStreamController,
+            TimeService timeService) {
 
         this.productBaseRepository = productBaseRepository;
         this.classificationRepository = classificationRepository;
@@ -83,6 +87,7 @@ public class InventoryService {
         this.notificationService = notificationService;
         this.catalogService = catalogService;
         this.inventoryStreamController = inventoryStreamController;
+        this.timeService = timeService;
     }
 
     /**
@@ -94,6 +99,9 @@ public class InventoryService {
         Farmer farmer = farmerRepository.findById(request.getFarmerId())
                 .orElseThrow(() -> new BusinessException("FARMER_NOT_FOUND"));
         String farmerName = farmer.getName() + " " + farmer.getLastName();
+
+        Instant occurredAt = timeService.resolve(request.getOccurredAt(), request.getEntryDate());
+        LocalDate entryDate = timeService.toLocalDate(occurredAt);
 
         BigDecimal commissionRate = catalogService.getDecimal("ENTRY_COMMISSION_RATE");
         UUID groupId = UUID.randomUUID();
@@ -128,7 +136,8 @@ public class InventoryService {
             movement.setQuantity(item.getQuantity());
             movement.setPricePerUnit(item.getPricePerUnit());
             movement.setTotalPrice(linePrice);
-            movement.setEntryDate(request.getEntryDate());
+            movement.setEntryDate(entryDate);
+            movement.setOccurredAt(occurredAt);
             movement = entryMovementRepository.save(movement);
 
             EntryCharge charge = new EntryCharge();
@@ -151,7 +160,7 @@ public class InventoryService {
                         return nuevo;
                     });
             lot.setQuantity(lot.getQuantity().add(item.getQuantity()));
-            lot.setEntryDate(request.getEntryDate());
+            lot.setEntryDate(entryDate);
             lotRepository.save(lot);
 
             items.add(toItem(movement, productBase.getName(), classification.getName(), lineCommission));
@@ -170,14 +179,15 @@ public class InventoryService {
         response.setId(groupId);
         response.setFarmerName(farmerName);
         response.setLotNumber(request.getLotNumber());
-        response.setEntryDate(request.getEntryDate());
+        response.setEntryDate(entryDate);
+        response.setOccurredAt(occurredAt);
         response.setItems(items);
         response.setTotalQuantity(totalQuantity);
         response.setTotalPrice(totalPrice);
         response.setTotalCommission(totalCommission);
 
         notificationService.sendEntryNotification(
-                farmerName, request.getLotNumber(), request.getEntryDate().toString(),
+                farmerName, request.getLotNumber(), timeService.format(occurredAt),
                 itemLines, totalQuantity.doubleValue(), totalPrice.doubleValue());
 
         inventoryStreamController.broadcastInventoryUpdate(
@@ -194,8 +204,8 @@ public class InventoryService {
     public List<EntryReceiptResponseDTO> getEntries() {
         List<EntryMovement> all = new ArrayList<>(entryMovementRepository.findAll());
         all.sort(Comparator
-                .comparing(EntryMovement::getEntryDate, Comparator.reverseOrder())
-                .thenComparing(EntryMovement::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())));
+                .comparing((EntryMovement m) -> timeService.instantOf(m.getOccurredAt(), m.getEntryDate()))
+                .reversed());
 
         Map<UUID, List<EntryMovement>> groups = new LinkedHashMap<>();
         for (EntryMovement m : all) {
@@ -211,6 +221,7 @@ public class InventoryService {
             dto.setFarmerName(first.getFarmer().getName() + " " + first.getFarmer().getLastName());
             dto.setLotNumber(first.getLotNumber());
             dto.setEntryDate(first.getEntryDate());
+            dto.setOccurredAt(first.getOccurredAt());
 
             List<EntryReceiptResponseDTO.Item> items = new ArrayList<>();
             BigDecimal quantity = BigDecimal.ZERO;
@@ -253,6 +264,9 @@ public class InventoryService {
                 .orElseThrow(() -> new BusinessException("TRADER_NOT_FOUND"));
         String traderName = trader.getName() + " " + trader.getLastName();
 
+        Instant occurredAt = timeService.resolve(request.getOccurredAt(), request.getExitDate());
+        LocalDate exitDate = timeService.toLocalDate(occurredAt);
+
         BigDecimal commissionRate = catalogService.getDecimal("EXIT_COMMISSION_RATE");
         UUID groupId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.now();
@@ -285,7 +299,8 @@ public class InventoryService {
             movement.setQuantity(item.getQuantity());
             movement.setPricePerUnit(item.getPricePerUnit());
             movement.setTotalPrice(linePrice);
-            movement.setExitDate(request.getExitDate());
+            movement.setExitDate(exitDate);
+            movement.setOccurredAt(occurredAt);
             movement = exitMovementRepository.save(movement);
 
             lot.setQuantity(lot.getQuantity().subtract(item.getQuantity()));
@@ -314,14 +329,15 @@ public class InventoryService {
         ExitReceiptResponseDTO response = new ExitReceiptResponseDTO();
         response.setId(groupId);
         response.setTraderName(traderName);
-        response.setExitDate(request.getExitDate());
+        response.setExitDate(exitDate);
+        response.setOccurredAt(occurredAt);
         response.setItems(items);
         response.setTotalQuantity(totalQuantity);
         response.setTotalPrice(totalPrice);
         response.setTotalCommission(totalCommission);
 
         notificationService.sendExitNotification(
-                traderName, request.getExitDate().toString(), itemLines,
+                traderName, timeService.format(occurredAt), itemLines,
                 totalQuantity.doubleValue(), totalPrice.doubleValue());
 
         inventoryStreamController.broadcastInventoryUpdate(
@@ -338,8 +354,8 @@ public class InventoryService {
     public List<ExitReceiptResponseDTO> getExits() {
         List<ExitMovement> all = new ArrayList<>(exitMovementRepository.findAll());
         all.sort(Comparator
-                .comparing(ExitMovement::getExitDate, Comparator.reverseOrder())
-                .thenComparing(ExitMovement::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())));
+                .comparing((ExitMovement m) -> timeService.instantOf(m.getOccurredAt(), m.getExitDate()))
+                .reversed());
 
         Map<UUID, List<ExitMovement>> groups = new LinkedHashMap<>();
         for (ExitMovement m : all) {
@@ -354,6 +370,7 @@ public class InventoryService {
             dto.setId(groupId);
             dto.setTraderName(first.getTrader().getName() + " " + first.getTrader().getLastName());
             dto.setExitDate(first.getExitDate());
+            dto.setOccurredAt(first.getOccurredAt());
 
             List<ExitReceiptResponseDTO.Item> items = new ArrayList<>();
             BigDecimal quantity = BigDecimal.ZERO;

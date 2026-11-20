@@ -27,6 +27,22 @@ const navItems = [
               <path d="M12 19V5M5 12l7-7 7 7"/>
             </svg>
         )},
+      { to: '/gastos', label: 'Gastos', icon: (
+            <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>
+            </svg>
+        )},
+    ]
+  },
+  {
+    label: 'Propietario',
+    ownerOnly: true,
+    items: [
+      { to: '/reportes', label: 'Reportes', icon: (
+            <svg fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>
+            </svg>
+        )},
     ]
   },
   {
@@ -55,7 +71,7 @@ const navItems = [
 
 export default function Layout() {
   const { user, logout } = useAuth0()
-  const { label: roleLabel } = useRole()
+  const { label: roleLabel, isOwner } = useRole()
   const location = useLocation()
 
   const getPageTitle = () => {
@@ -63,6 +79,9 @@ export default function Layout() {
       '/': 'Dashboard',
       '/entradas': 'Registro de Entradas',
       '/salidas': 'Registro de Salidas',
+      '/gastos': 'Gastos de la bodega',
+      '/reportes': 'Reportes económicos',
+      '/lotes': 'Lotes',
       '/cosecheros': 'Cosecheros',
       '/negociantes': 'Negociantes',
       '/productos': 'Catálogo de Productos',
@@ -84,7 +103,7 @@ export default function Layout() {
           </div>
 
           <nav className="sidebar-nav">
-            {navItems.map((section) => (
+            {navItems.filter((section) => !section.ownerOnly || isOwner).map((section) => (
                 <div key={section.label} className="nav-section">
                   <div className="nav-label">{section.label}</div>
                   {section.items.map((item) => (

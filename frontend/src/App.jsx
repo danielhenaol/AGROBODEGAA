@@ -10,6 +10,8 @@ import Traders from './pages/Traders'
 import Products from './pages/Products'
 import LoginPage from './pages/LoginPage'
 import NoAccess from './pages/NoAccess'
+import Expenses from './pages/Expenses'
+import Reports from './pages/Reports'
 import { useRole } from './services/roles'
 
 function ProtectedRoute({ children }) {
@@ -30,6 +32,11 @@ function ProtectedRoute({ children }) {
   return hasAccess ? children : <NoAccess />
 }
 
+function OwnerOnly({ children }) {
+  const { isOwner } = useRole()
+  return isOwner ? children : <Navigate to="/" replace />
+}
+
 export default function App() {
   return (
     <BrowserRouter>
@@ -47,6 +54,8 @@ export default function App() {
           <Route path="entradas" element={<Entries />} />
           <Route path="salidas" element={<Exits />} />
           <Route path="lotes" element={<Lots />} />
+          <Route path="gastos" element={<Expenses />} />
+          <Route path="reportes" element={<OwnerOnly><Reports /></OwnerOnly>} />
           <Route path="cosecheros" element={<Farmers />} />
           <Route path="negociantes" element={<Traders />} />
           <Route path="productos" element={<Products />} />

@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -20,7 +21,10 @@ public class EntryRequestDTO {
     @Max(value = 10, message = "El lote debe estar entre 1 y 10")
     private Integer lotNumber;
 
-    @NotNull(message = "La fecha de entrada es obligatoria")
+    /** Fecha y hora de la entrada. Si no viene, se usa el momento actual. */
+    private Instant occurredAt;
+
+    /** Solo por compatibilidad: fecha sin hora. */
     private LocalDate entryDate;
 
     @NotEmpty(message = "La entrada debe tener al menos un producto")
@@ -34,6 +38,9 @@ public class EntryRequestDTO {
 
     public Integer getLotNumber() { return lotNumber; }
     public void setLotNumber(Integer lotNumber) { this.lotNumber = lotNumber; }
+
+    public Instant getOccurredAt() { return occurredAt; }
+    public void setOccurredAt(Instant occurredAt) { this.occurredAt = occurredAt; }
 
     public LocalDate getEntryDate() { return entryDate; }
     public void setEntryDate(LocalDate entryDate) { this.entryDate = entryDate; }

@@ -59,6 +59,14 @@ export const api = {
   createEntry: (token, data) => createApiClient(token).post('/api/v1/entries', data),
   getExits: (token) => createApiClient(token).get('/api/v1/exits'),
   createExit: (token, data) => createApiClient(token).post('/api/v1/exits', data),
+  getDashboard: (token) => createApiClient(token).get('/api/v1/dashboard'),
+  getReportSummary: (token, from, to) =>
+      createApiClient(token).get('/api/v1/reports/summary', { params: { from, to } }),
+  getExpenseCategories: (token) => createApiClient(token).get('/api/v1/expenses/categories'),
+  getExpenses: (token, from, to) =>
+      createApiClient(token).get('/api/v1/expenses', { params: { from, to } }),
+  createExpense: (token, data) => createApiClient(token).post('/api/v1/expenses', data),
+  deleteExpense: (token, id) => createApiClient(token).delete(`/api/v1/expenses/${id}`),
 }
 
 export const SSE_URL = `${API_URL}/api/v1/inventory/stream`
