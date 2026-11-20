@@ -217,7 +217,7 @@ export default function Entries() {
                         <button type="button" className="btn btn-secondary btn-sm" onClick={addLine}>+ Agregar línea</button>
                       </div>
                       {lines.map((line, index) => (
-                          <div key={index} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 80px 100px 32px', gap: 8, marginBottom: 10, alignItems: 'end' }}>
+                          <div key={index} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr) 80px 100px 32px', gap: 8, marginBottom: 10, alignItems: 'end' }}>
                             <div className="form-group" style={{ marginBottom: 0 }}>
                               {index === 0 && <label style={{ fontSize: 11 }}>Producto *</label>}
                               <select value={line.productBaseId} onChange={e => updateLine(index, 'productBaseId', e.target.value)} required>

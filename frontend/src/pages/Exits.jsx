@@ -162,7 +162,7 @@ export default function Exits() {
 
       {showModal && (
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowModal(false)}>
-          <div className="modal" style={{ maxWidth: 760 }}>
+          <div className="modal" style={{ maxWidth: 780, width: '100%' }}>
             <div className="modal-header">
               <div className="modal-title">Registrar salida</div>
               <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
@@ -198,10 +198,11 @@ export default function Exits() {
                   {lines.map((line, index) => {
                     const lot = lotById(line.lotId)
                     return (
-                      <div key={index} style={{ display: 'grid', gridTemplateColumns: '2fr 90px 110px 32px', gap: 8, marginBottom: 10, alignItems: 'end' }}>
+                      <div key={index} style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 90px 110px 32px', gap: 8, marginBottom: 10, alignItems: 'end' }}>
                         <div className="form-group" style={{ marginBottom: 0 }}>
                           {index === 0 && <label style={{ fontSize: 11 }}>Lote *</label>}
-                          <select value={line.lotId} onChange={(e) => updateLine(index, 'lotId', e.target.value)} required>
+                          <select value={line.lotId} onChange={(e) => updateLine(index, 'lotId', e.target.value)} required
+                                  style={{ width: '100%', minWidth: 0, textOverflow: 'ellipsis' }}>
                             <option value="">Seleccionar lote</option>
                             {optionsFor(index).map((l) => <option key={l.id} value={l.id}>{lotLabel(l)}</option>)}
                           </select>

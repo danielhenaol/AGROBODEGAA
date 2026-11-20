@@ -450,6 +450,12 @@ tbody tr:last-child td { border-bottom: none; }
   display: flex;
   flex-direction: column;
   gap: 6px;
+  min-width: 0; /* permite que el contenido largo se recorte en vez de ensanchar la columna */
+}
+
+.form-group select {
+  max-width: 100%;
+  text-overflow: ellipsis;
 }
 
 .form-group.full { grid-column: 1 / -1; }
