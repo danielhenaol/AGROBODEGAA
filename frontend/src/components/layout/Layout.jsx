@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom'
 import { useAuth0 } from '@auth0/auth0-react'
+import { useRole } from '../../services/roles'
 
 const navItems = [
   {
@@ -54,6 +55,7 @@ const navItems = [
 
 export default function Layout() {
   const { user, logout } = useAuth0()
+  const { label: roleLabel } = useRole()
   const location = useLocation()
 
   const getPageTitle = () => {
@@ -110,7 +112,7 @@ export default function Layout() {
               </div>
               <div className="user-info">
                 <div className="user-name">{user?.name || user?.email}</div>
-                <div className="user-role">Administrador</div>
+                <div className="user-role">{roleLabel}</div>
               </div>
               <button
                   className="logout-btn"

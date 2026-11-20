@@ -9,9 +9,12 @@ import Farmers from './pages/Farmers'
 import Traders from './pages/Traders'
 import Products from './pages/Products'
 import LoginPage from './pages/LoginPage'
+import NoAccess from './pages/NoAccess'
+import { useRole } from './services/roles'
 
 function ProtectedRoute({ children }) {
   const { isAuthenticated, isLoading } = useAuth0()
+  const { hasAccess } = useRole()
 
   if (isLoading) {
     return (
@@ -22,7 +25,9 @@ function ProtectedRoute({ children }) {
     )
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" replace />
+  if (!isAuthenticated) return <Navigate to="/login" replace />
+  // Estar autenticado no basta: hace falta uno de los dos roles de la bodega
+  return hasAccess ? children : <NoAccess />
 }
 
 export default function App() {

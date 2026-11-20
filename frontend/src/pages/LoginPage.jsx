@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { API_URL } from '../services/api'
 
 export default function LoginPage() {
-  const { loginWithRedirect, isAuthenticated, isLoading } = useAuth0()
+  const { loginWithRedirect, isAuthenticated, isLoading, error } = useAuth0()
 
   // Despierta el gateway y el backend (Render gratis los duerme) mientras la persona inicia sesion
   useEffect(() => {
@@ -55,6 +55,12 @@ export default function LoginPage() {
         <div className="login-box">
           <h2>Bienvenido</h2>
           <p>Inicia sesión para acceder al sistema de gestión agrícola.</p>
+
+          {error && (
+            <div className="alert alert-danger">
+              ⚠ {error.message || 'No se pudo iniciar sesión.'}
+            </div>
+          )}
 
           <button
             type="button"
