@@ -102,12 +102,6 @@
             <artifactId>micrometer-tracing-bridge-otel</artifactId>
         </dependency>
 
-        <!-- SENDGRID: envío de correos -->
-        <dependency>
-            <groupId>com.sendgrid</groupId>
-            <artifactId>sendgrid-java</artifactId>
-            <version>4.10.2</version>
-        </dependency>
 
         <!-- TEST: pruebas -->
         <dependency>

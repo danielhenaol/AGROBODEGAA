@@ -9,7 +9,7 @@ agricultores, comerciantes y alertas de inventario.
 |---|---|
 | `backend/` | API de negocio (Java 21, Spring Boot, PostgreSQL/Supabase) |
 | `frontend/` | Aplicación web (React + Vite) |
-| `notifications-service/` | Catálogos y notificaciones (Strapi, será reemplazado) |
+| `notification-service/` | Gateway de notificaciones (Java, plantillas en Supabase, envío con Resend) |
 | `infra/` | Configuración local con Docker (Kong, Redis, Vault). Será retirada |
 | `.github/workflows/` | Integración continua (GitHub Actions) |
 
