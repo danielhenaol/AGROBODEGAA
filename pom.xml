@@ -12,7 +12,6 @@
             mvn clean verify
         Cada módulo conserva su propio parent (Spring Boot), por eso este POM
         solo agrupa, no hereda configuración.
-        Módulos nuevos (por ejemplo api-gateway) se agregan aquí.
     -->
     <groupId>com.agrobodega</groupId>
     <artifactId>agrobodega-parent</artifactId>
@@ -24,5 +23,6 @@
     <modules>
         <module>backend</module>
         <module>notification-service</module>
+        <module>api-gateway</module>
     </modules>
 </project>

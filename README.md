@@ -7,6 +7,7 @@ agricultores, comerciantes y alertas de inventario.
 
 | Carpeta | Descripción |
 |---|---|
+| `api-gateway/` | Punto de entrada único: enrutamiento, CORS y cabeceras de seguridad (Spring Cloud Gateway) |
 | `backend/` | API de negocio (Java 21, Spring Boot, PostgreSQL/Supabase) |
 | `frontend/` | Aplicación web (React + Vite) |
 | `notification-service/` | Gateway de notificaciones (Java, plantillas en Supabase, envío con Resend) |
